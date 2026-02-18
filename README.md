@@ -1,6 +1,6 @@
 # IaC Confluent Cloud AWS Private Network Interface (PNI), Infrastructure and Networking Example
 
-
+![terraform-visualization](docs/images/terraform-visualization.png)
 
 ## References
 

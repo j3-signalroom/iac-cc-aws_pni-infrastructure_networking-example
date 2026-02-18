@@ -33,15 +33,6 @@ resource "aws_network_interface" "pni" {
   }
 }
 
-# Create network interface permissions (equivalent to aws ec2 create-network-interface-permission)
-resource "aws_network_interface_permission" "pni" {
-  count = length(aws_network_interface.pni)
-
-  network_interface_id = aws_network_interface.pni[count.index].id
-  permission           = "INSTANCE-ATTACH"
-  aws_account_id       = var.aws_account_id
-}
-
 # ===================================================================================
 # CONFLUENT PNI ACCESS POINT
 # ===================================================================================
