@@ -9,7 +9,7 @@ resource "aws_network_interface" "pni" {
   count = var.subnet_count * var.num_eni_per_subnet
 
 
-  subnet_id = aws_subnet.main[floor(count.index / var.num_eni_per_subnet)].id
+  subnet_id = aws_subnet.private[floor(count.index / var.num_eni_per_subnet)].id
   security_groups = [aws_security_group.pni.id]
 
   # Calculate private IP: base_ip + (j+1) where j is the ENI number within subnet
@@ -17,7 +17,7 @@ resource "aws_network_interface" "pni" {
   # count.index % var.num_eni_per_subnet gives ENI index within subnet (0, 1, ...)
   private_ips = [
     cidrhost(
-      aws_subnet.main[floor(count.index / var.num_eni_per_subnet)].cidr_block,
+      aws_subnet.private[floor(count.index / var.num_eni_per_subnet)].cidr_block,
       10 + (count.index % var.num_eni_per_subnet) + 1
     )
   ]
@@ -31,15 +31,6 @@ resource "aws_network_interface" "pni" {
     ManagedBy   = "Terraform Cloud"
     Purpose     = "Confluent PNI connectivity"
   }
-}
-
-# Create network interface permissions (equivalent to aws ec2 create-network-interface-permission)
-resource "aws_network_interface_permission" "pni" {
-  count = length(aws_network_interface.pni)
-
-  network_interface_id = aws_network_interface.pni[count.index].id
-  permission           = "INSTANCE-ATTACH"
-  aws_account_id       = var.aws_account_id
 }
 
 # ===================================================================================

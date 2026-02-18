@@ -15,7 +15,7 @@ resource "confluent_gateway" "non_prod" {
 
   aws_private_network_interface_gateway {
     region = var.aws_region
-    zones  = local.available_zones
+    zones  = local.available_zone_ids
   }
 
   depends_on = [ 

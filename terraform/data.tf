@@ -19,5 +19,5 @@ locals {
   vpn_target_subnet_ids = length(var.vpn_target_subnet_ids) > 0 ? split(",", var.vpn_target_subnet_ids) : []
   tfc_agent_vpc_rt_ids  = length(var.tfc_agent_vpc_rt_ids) > 0 ? split(",", var.tfc_agent_vpc_rt_ids) : []
   vpn_vpc_rt_ids        = length(var.vpn_vpc_rt_ids) > 0 ? split(",", var.vpn_vpc_rt_ids) : []
-  available_zones       = slice(data.aws_availability_zones.available.names, 0, var.subnet_count)
+  available_zone_ids    = slice(data.aws_availability_zones.available.zone_ids, 0, var.subnet_count)
 }
