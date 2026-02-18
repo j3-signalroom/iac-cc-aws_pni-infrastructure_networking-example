@@ -8,6 +8,10 @@ resource "confluent_kafka_cluster" "sandbox_cluster" {
   environment {
     id = confluent_environment.non_prod.id
   }
+
+  depends_on = [ 
+    module.sandbox_vpc_pni 
+  ]
 }
 
 resource "confluent_kafka_cluster" "shared_cluster" {
@@ -20,4 +24,8 @@ resource "confluent_kafka_cluster" "shared_cluster" {
   environment {
     id = confluent_environment.non_prod.id
   }
+
+  depends_on = [ 
+    module.shared_vpc_pni 
+  ]
 }
