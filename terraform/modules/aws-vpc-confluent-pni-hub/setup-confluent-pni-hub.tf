@@ -36,6 +36,7 @@ resource "confluent_access_point" "pni_hub" {
   }
 
   depends_on = [
-    aws_network_interface.pni_hub
+    aws_network_interface.pni_hub,
+    aws_network_interface_permission.pni_hub
   ]
 }
