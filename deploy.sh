@@ -85,6 +85,7 @@ vpn_vpc_id=""
 vpn_vpc_rt_ids=""
 vpn_endpoint_id=""
 vpn_target_subnet_ids=""
+pni_hub_vpc_cidr=""
 
 
 # Get the arguments passed by shift to remove the first word
@@ -128,6 +129,17 @@ do
         *"--vpn-target-subnet-ids="*)
             arg_length=24
             vpn_target_subnet_ids=${arg:$arg_length:$(expr ${#arg} - $arg_length)};;
+        *"--pni-hub-vpc-cidr="*)
+            arg_length=22
+            pni_hub_vpc_cidr=${arg:$arg_length:$(expr ${#arg} - $arg_length)};;
+        *)
+            echo
+            print_error "(Error Message 002)  Invalid argument: $arg"
+            echo
+            print_error "Usage:  Require all eleven arguments ---> `basename $0`=<create | destroy> $argument_list"
+            echo
+            exit 85 # Common GNU/Linux Exit Code for 'Interrupted system call should be restarted'
+            ;;
     esac
 done
 
@@ -135,7 +147,7 @@ done
 if [ -z "$AWS_PROFILE" ]
 then
     echo
-    print_error "(Error Message 002)  You did not include the proper use of the --profile=<SSO_PROFILE_NAME> argument in the call."
+    print_error "(Error Message 003)  You did not include the proper use of the --profile=<SSO_PROFILE_NAME> argument in the call."
     echo
     print_error "Usage:  Require all eleven arguments ---> `basename $0 $1` $argument_list"
     echo
@@ -146,7 +158,7 @@ fi
 if [ -z "$confluent_api_key" ]
 then
     echo
-    print_error "(Error Message 003)  You did not include the proper use of the --confluent-api-key=<CONFLUENT_API_KEY> argument in the call."
+    print_error "(Error Message 004)  You did not include the proper use of the --confluent-api-key=<CONFLUENT_API_KEY> argument in the call."
     echo
     print_error "Usage:  Require all eleven arguments ---> `basename $0 $1` $argument_list"
     echo
@@ -157,7 +169,7 @@ fi
 if [ -z "$confluent_api_secret" ]
 then
     echo
-    print_error "(Error Message 004)  You did not include the proper use of the --confluent-api-secret=<CONFLUENT_API_SECRET> argument in the call."
+    print_error "(Error Message 005)  You did not include the proper use of the --confluent-api-secret=<CONFLUENT_API_SECRET> argument in the call."
     echo
     print_error "Usage:  Require all eleven arguments ---> `basename $0 $1` $argument_list"
     echo
@@ -168,7 +180,7 @@ fi
 if [ -z "$tfe_token" ]
 then
     echo
-    print_error "(Error Message 005)  You did not include the proper use of the --tfe-token=<TFE_TOKEN> argument in the call."
+    print_error "(Error Message 006)  You did not include the proper use of the --tfe-token=<TFE_TOKEN> argument in the call."
     echo
     print_error "Usage:  Require all eleven arguments ---> `basename $0 $1` $argument_list"
     echo
@@ -179,7 +191,7 @@ fi
 if [ -z "$tgw_id" ]
 then
     echo
-    print_error "(Error Message 006)  You did not include the proper use of the --tgw-id=<TGW_ID> argument in the call."
+    print_error "(Error Message 007)  You did not include the proper use of the --tgw-id=<TGW_ID> argument in the call."
     echo
     print_error "Usage:  Require all eleven arguments ---> `basename $0 $1` $argument_list"
     echo
@@ -190,7 +202,7 @@ fi
 if [ -z "$tgw_rt_id" ]
 then
     echo
-    print_error "(Error Message 007)  You did not include the proper use of the --tgw-rt-id=<TGW_RT_ID> argument in the call."
+    print_error "(Error Message 008)  You did not include the proper use of the --tgw-rt-id=<TGW_RT_ID> argument in the call."
     echo
     print_error "Usage:  Require all eleven arguments ---> `basename $0 $1` $argument_list"
     echo
@@ -201,7 +213,7 @@ fi
 if [ -z "$tfc_agent_vpc_id" ]
 then
     echo
-    print_error "(Error Message 008)  You did not include the proper use of the --tfc-agent-vpc-id=<TFC_AGENT_VPC_ID> argument in the call."
+    print_error "(Error Message 009)  You did not include the proper use of the --tfc-agent-vpc-id=<TFC_AGENT_VPC_ID> argument in the call."
     echo
     print_error "Usage:  Require all eleven arguments ---> `basename $0 $1` $argument_list"
     echo
@@ -212,7 +224,7 @@ fi
 if [ -z "$vpn_vpc_id" ]
 then
     echo
-    print_error "(Error Message 009)  You did not include the proper use of the --vpn-vpc-id=<VPN_VPC_ID> argument in the call."
+    print_error "(Error Message 010)  You did not include the proper use of the --vpn-vpc-id=<VPN_VPC_ID> argument in the call."
     echo
     print_error "Usage:  Require all eleven arguments ---> `basename $0 $1` $argument_list"
     echo
@@ -223,7 +235,7 @@ fi
 if [ -z "$tfc_agent_vpc_rt_ids" ]
 then
     echo
-    print_error "(Error Message 010)  You did not include the proper use of the --tfc-agent-vpc-rt-ids=<TFC_AGENT_VPC_RT_IDs> argument in the call."
+    print_error "(Error Message 011)  You did not include the proper use of the --tfc-agent-vpc-rt-ids=<TFC_AGENT_VPC_RT_IDs> argument in the call."
     echo
     print_error "Usage:  Require all eleven arguments ---> `basename $0 $1` $argument_list"
     echo
@@ -234,7 +246,7 @@ fi
 if [ -z "$vpn_vpc_rt_ids" ]
 then
     echo
-    print_error "(Error Message 011)  You did not include the proper use of the --vpn-vpc-rt-ids=<VPN_VPC_RT_IDs> argument in the call."
+    print_error "(Error Message 012)  You did not include the proper use of the --vpn-vpc-rt-ids=<VPN_VPC_RT_IDs> argument in the call."
     echo
     print_error "Usage:  Require all eleven arguments ---> `basename $0 $1` $argument_list"
     echo
@@ -245,7 +257,7 @@ fi
 if [ -z "$vpn_endpoint_id" ]
 then
     echo
-    print_error "(Error Message 012)  You did not include the proper use of the --vpn-endpoint-id=<VPN_ENDPOINT_ID> argument in the call."
+    print_error "(Error Message 013)  You did not include the proper use of the --vpn-endpoint-id=<VPN_ENDPOINT_ID> argument in the call."
     echo
     print_error "Usage:  Require all eleven arguments ---> `basename $0 $1` $argument_list"
     echo
@@ -256,7 +268,7 @@ fi
 if [ -z "$vpn_target_subnet_ids" ]
 then
     echo
-    print_error "(Error Message 013)  You did not include the proper use of the --vpn-target-subnet-ids=<VPN_TARGET_SUBNET_IDs> argument in the call."
+    print_error "(Error Message 014)  You did not include the proper use of the --vpn-target-subnet-ids=<VPN_TARGET_SUBNET_IDs> argument in the call."
     echo
     print_error "Usage:  Require all eleven arguments ---> `basename $0 $1` $argument_list"
     echo
@@ -267,7 +279,7 @@ fi
 if [ -z "$pni_hub_vpc_cidr" ]
 then
     echo
-    print_error "(Error Message 014)  You did not include the proper use of the --pni-hub-vpc-cidr=<PNI_HUB_VPC_CIDR> argument in the call."
+    print_error "(Error Message 015)  You did not include the proper use of the --pni-hub-vpc-cidr=<PNI_HUB_VPC_CIDR> argument in the call."
     echo
     print_error "Usage:  Require all eleven arguments ---> `basename $0 $1` $argument_list"
     echo
