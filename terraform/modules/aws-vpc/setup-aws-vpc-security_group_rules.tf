@@ -14,7 +14,7 @@
 #
 resource "aws_security_group" "pni" {
   name        = "ccloud-pni-${local.network_id}-${aws_vpc.pni.id}"
-  description = "Confluent Cloud PNI Security Group for ${data.confluent_environment.pni.display_name}"
+  description = "Confluent Cloud PNI Security Group for ${var.vpc_name}"
   vpc_id      = aws_vpc.pni.id
 
   # -----------------------------------------------------------------------

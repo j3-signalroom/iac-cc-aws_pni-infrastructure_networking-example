@@ -38,16 +38,6 @@ output "vpc_pni_availability_zone_ids" {
   value       = local.available_zone_ids
 }
 
-output "confluent_pni_gateway_id" {
-  description = "Confluent PNI Gateway ID"
-  value       = confluent_gateway.pni.id
-}
-
-output "confluent_pni_access_point_id" {
-  description = "Confluent PNI Access Point ID"
-  value       = confluent_access_point.pni.id
-}
-
 output "vpc_pni_subnet_details" {
   description = "Map of subnet details by index"
   value = {

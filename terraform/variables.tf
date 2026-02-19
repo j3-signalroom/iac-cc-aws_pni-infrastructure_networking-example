@@ -100,7 +100,7 @@ variable "vpn_target_subnet_ids" {
   type        = string
 }
 
-variable "num_eni_per_subnet" {
+variable "eni_number_per_subnet" {
   description = "Number of ENIs to create per subnet"
   type        = number
   default     = 17

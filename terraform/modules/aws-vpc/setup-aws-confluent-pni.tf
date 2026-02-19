@@ -6,26 +6,26 @@
 # account but carry traffic to and from Confluent Cloud. This replaces the VPC
 # Interface Endpoint used in PrivateLink.
 resource "aws_network_interface" "pni" {
-  count = var.subnet_count * var.num_eni_per_subnet
+  count = var.subnet_count * var.eni_number_per_subnet
 
 
-  subnet_id = aws_subnet.private[floor(count.index / var.num_eni_per_subnet)].id
+  subnet_id = aws_subnet.private[floor(count.index / var.eni_number_per_subnet)].id
   security_groups = [aws_security_group.pni.id]
 
   # Calculate private IP: base_ip + (j+1) where j is the ENI number within subnet
-  # floor(count.index / var.num_eni_per_subnet) gives subnet index (0, 1, 2)
-  # count.index % var.num_eni_per_subnet gives ENI index within subnet (0, 1, ...)
+  # floor(count.index / var.eni_number_per_subnet) gives subnet index (0, 1, 2)
+  # count.index % var.eni_number_per_subnet gives ENI index within subnet (0, 1, ...)
   private_ips = [
     cidrhost(
-      aws_subnet.private[floor(count.index / var.num_eni_per_subnet)].cidr_block,
-      10 + (count.index % var.num_eni_per_subnet) + 1
+      aws_subnet.private[floor(count.index / var.eni_number_per_subnet)].cidr_block,
+      10 + (count.index % var.eni_number_per_subnet) + 1
     )
   ]
 
-  description = "Confluent PNI Subnet ${floor(count.index / var.num_eni_per_subnet)} ENI ${(count.index % var.num_eni_per_subnet) + 1}"
+  description = "Confluent PNI Subnet ${floor(count.index / var.eni_number_per_subnet)} ENI ${(count.index % var.eni_number_per_subnet) + 1}"
 
   tags = {
-    Name        = "confluent-pni-subnet-${floor(count.index / var.num_eni_per_subnet)}-eni-${(count.index % var.num_eni_per_subnet) + 1}"
+    Name        = "confluent-pni-subnet-${floor(count.index / var.eni_number_per_subnet)}-eni-${(count.index % var.eni_number_per_subnet) + 1}"
     VPC         = aws_vpc.pni.id
     Environment = data.confluent_environment.pni.display_name
     ManagedBy   = "Terraform Cloud"

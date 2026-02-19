@@ -1,5 +1,20 @@
+variable "aws_region" {
+  description = "AWS region to deploy resources in"
+  type        = string
+}
+
+variable "aws_account_id" {
+  description = "AWS Account ID where resources will be deployed"
+  type        = string
+}
+
 variable "vpc_cidr" {
   description = "CIDR block for the VPC"
+  type        = string
+}
+
+variable "vpc_name" {
+  description = "VPC name"
   type        = string
 }
 
@@ -75,14 +90,14 @@ variable "vpn_target_subnet_ids" {
   default     = []
 }
 
+variable "confluent_gateway_id" {
+  description = "Confluent Gateway ID for adding routes to PrivateLink VPCs"
+  type        = string
+  default     = null
+}
+
 variable "eni_number_per_subnet" {
   description = "Number of ENIs to create per subnet"
   type        = number
   default     = 17
-}
-
-variable "tags" {
-  description = "Tags applied to all resources"
-  type        = map(string)
-  default     = {}
 }

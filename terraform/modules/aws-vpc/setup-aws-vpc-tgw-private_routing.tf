@@ -7,11 +7,11 @@ resource "aws_vpc" "pni" {
   enable_dns_support   = true
 
   tags = {
-    Name = "vpc-confluent-pni-${data.confluent_environment.pni.display_name}"
+    Name = var.vpc_name
   }
 }
 
-resource "aws_subnet" "pni" {
+resource "aws_subnet" "private" {
   count = var.subnet_count
 
   vpc_id            = aws_vpc.pni.id
@@ -19,35 +19,36 @@ resource "aws_subnet" "pni" {
   availability_zone = local.available_zones[count.index]
 
   tags = {
-    Name          = "confluent-pni-${data.confluent_environment.pni.display_name}-subnet-${count.index + 1}"
+    Name          = "${var.vpc_name}-private-subnet-${count.index + 1}"
+    Type          = "private"
     AvailableZone = local.available_zones[count.index]
     AZ_ID         = local.available_zone_ids[count.index]
   }
 }
 
 # Route table per subnet
-resource "aws_route_table" "pni" {
+resource "aws_route_table" "private" {
   count = var.subnet_count
   
   vpc_id = aws_vpc.pni.id
   
   tags = {
-    Name = "confluent-pni-${data.confluent_environment.pni.display_name}-rt-${count.index + 1}"
+    Name = "${var.vpc_name}-private-rt-${count.index + 1}"
   }
 }
 
-resource "aws_route_table_association" "pni" {
+resource "aws_route_table_association" "private" {
   count = var.subnet_count
 
-  subnet_id      = aws_subnet.pni[count.index].id
-  route_table_id = aws_route_table.pni[count.index].id
+  subnet_id      = aws_subnet.private[count.index].id
+  route_table_id = aws_route_table.private[count.index].id
 }
 
 # ============================================================================
 # TRANSIT GATEWAY ATTACHMENT
 # ============================================================================
 resource "aws_ec2_transit_gateway_vpc_attachment" "pni" {
-  subnet_ids         = aws_subnet.pni[*].id
+  subnet_ids         = aws_subnet.private[*].id
   transit_gateway_id = var.tgw_id
   vpc_id             = aws_vpc.pni.id
   
@@ -79,7 +80,7 @@ resource "aws_ec2_transit_gateway_route_table_propagation" "pni" {
 resource "aws_route" "pni_to_tfc_agent" {
   count = var.subnet_count
 
-  route_table_id         = aws_route_table.pni[count.index].id
+  route_table_id         = aws_route_table.private[count.index].id
   destination_cidr_block = var.tfc_agent_vpc_cidr
   transit_gateway_id     = var.tgw_id
 
