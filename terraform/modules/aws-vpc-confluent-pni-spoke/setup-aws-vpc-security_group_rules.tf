@@ -1,8 +1,8 @@
 # ===================================================================================
-# PNI SECURITY GROUP
+# PNI SPOKE SECURITY GROUP
 # ===================================================================================
 #
-# Security group attached to the PNI ENIs. Controls what traffic can flow between
+# Security group attached to the PNI SPOKE ENIs. Controls what traffic can flow between
 # your VPCs and Confluent Cloud.
 #
 # Key differences from the PrivateLink security group:
@@ -12,10 +12,10 @@
 #     connections into your network
 #   - All rules are inline to allow Terraform to revoke the default egress rule
 #
-resource "aws_security_group" "pni" {
-  name        = "ccloud-pni-${local.network_id}-${aws_vpc.pni.id}"
-  description = "Confluent Cloud PNI Security Group for ${data.confluent_environment.pni.display_name}"
-  vpc_id      = aws_vpc.pni.id
+resource "aws_security_group" "pni_spoke" {
+  name        = "ccloud-pni-spoke-${local.network_id}-${aws_vpc.pni_spoke.id}"
+  description = "Confluent Cloud PNI Security Group for ${var.vpc_name}"
+  vpc_id      = aws_vpc.pni_spoke.id
 
   # -----------------------------------------------------------------------
   # INGRESS: HTTPS (443) — Confluent REST API, Schema Registry, admin
@@ -67,8 +67,8 @@ resource "aws_security_group" "pni" {
   }
 
   tags = {
-    Name        = "ccloud-pni-${local.network_id}"
-    VPC         = aws_vpc.pni.id
+    Name        = "ccloud-pni-spoke-${local.network_id}"
+    VPC         = aws_vpc.pni_spoke.id
     Environment = data.confluent_environment.pni.display_name
     ManagedBy   = "Terraform Cloud"
   }

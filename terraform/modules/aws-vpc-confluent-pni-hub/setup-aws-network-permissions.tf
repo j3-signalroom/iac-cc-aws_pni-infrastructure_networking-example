@@ -1,14 +1,14 @@
-resource "aws_network_acl" "pni" {
+resource "aws_network_acl" "pni_hub" {
   vpc_id     = aws_vpc.pni.id
   subnet_ids = aws_subnet.pni[*].id
 
   tags = merge(local.common_tags, {
-    Name = "nacl-confluent-pni-${data.confluent_environment.pni.display_name}"
+    Name = "nacl-confluent-pni-hub-${data.confluent_environment.pni.display_name}"
   })
 }
 
 resource "aws_network_acl_rule" "ingress_kafka" {
-  network_acl_id = aws_network_acl.pni.id
+  network_acl_id = aws_network_acl.pni_hub.id
   rule_number    = 100
   egress         = false
   protocol       = "tcp"
@@ -19,7 +19,7 @@ resource "aws_network_acl_rule" "ingress_kafka" {
 }
 
 resource "aws_network_acl_rule" "ingress_https" {
-  network_acl_id = aws_network_acl.pni.id
+  network_acl_id = aws_network_acl.pni_hub.id
   rule_number    = 110
   egress         = false
   protocol       = "tcp"
@@ -30,7 +30,7 @@ resource "aws_network_acl_rule" "ingress_https" {
 }
 
 resource "aws_network_acl_rule" "ingress_ephemeral" {
-  network_acl_id = aws_network_acl.pni.id
+  network_acl_id = aws_network_acl.pni_hub.id
   rule_number    = 120
   egress         = false
   protocol       = "tcp"
@@ -41,7 +41,7 @@ resource "aws_network_acl_rule" "ingress_ephemeral" {
 }
 
 resource "aws_network_acl_rule" "egress_all" {
-  network_acl_id = aws_network_acl.pni.id
+  network_acl_id = aws_network_acl.pni_hub.id
   rule_number    = 100
   egress         = true
   protocol       = "-1"
@@ -49,32 +49,14 @@ resource "aws_network_acl_rule" "egress_all" {
   cidr_block     = "0.0.0.0/0"
 }
 
-# ------------------------------------------------------------------------------
-# ENIs — 51 total (17 per subnet x 3 AZs)
-# ------------------------------------------------------------------------------
-
-resource "aws_network_interface" "pni" {
-  for_each = { for eni in local.eni_assignments : eni.key => eni }
-
-  subnet_id       = each.value.subnet_id
-  security_groups = [aws_security_group.pni.id]
-  description     = "Confluent PNI ${each.value.name}"
-
-  tags = merge(local.common_tags, {
-    Name = each.value.name
-    VPC  = aws_vpc.pni.id
-    AZ   = each.value.az
-  })
-}
-
 # ===================================================================================
-# ELASTIC NETWORK INTERFACES (ENIs) FOR PNI
+# ELASTIC NETWORK INTERFACES (ENIs) FOR PNI HUB
 # ===================================================================================
 #
 # PNI places ENIs directly into your VPC subnets. These ENIs are owned by your AWS
 # account but carry traffic to and from Confluent Cloud. This replaces the VPC
 # Interface Endpoint used in PrivateLink.
-resource "aws_network_interface" "pni" {
+resource "aws_network_interface" "pni_hub" {
   for_each = { for eni in local.eni_assignments : eni.key => eni }
 
 
@@ -91,10 +73,10 @@ resource "aws_network_interface" "pni" {
     )
   ]
 
-  description = "Confluent PNI Subnet ${floor(count.index / var.eni_number_per_subnet)} ENI ${(count.index % var.eni_number_per_subnet) + 1}"
+  description = "Confluent PNI Hub Subnet ${floor(count.index / var.eni_number_per_subnet)} ENI ${(count.index % var.eni_number_per_subnet) + 1}"
 
   tags = {
-    Name        = "confluent-pni-subnet-${floor(count.index / var.eni_number_per_subnet)}-eni-${(count.index % var.eni_number_per_subnet) + 1}"
+    Name        = "confluent-pni-hub-subnet-${floor(count.index / var.eni_number_per_subnet)}-eni-${(count.index % var.eni_number_per_subnet) + 1}"
     VPC         = aws_vpc.pni.id
     Environment = data.confluent_environment.pni.display_name
     ManagedBy   = "Terraform Cloud"
@@ -107,7 +89,7 @@ resource "aws_network_interface" "pni" {
 # Grant Confluent's AWS account the ability to attach these ENIs to their VMs
 # ------------------------------------------------------------------------------
 
-resource "aws_network_interface_permission" "confluent_pni" {
+resource "aws_network_interface_permission" "pni_hub" {
   for_each = aws_network_interface.pni
 
   network_interface_id = each.value.id

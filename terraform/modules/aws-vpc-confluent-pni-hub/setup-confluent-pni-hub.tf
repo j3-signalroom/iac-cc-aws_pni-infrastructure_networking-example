@@ -1,9 +1,9 @@
 
-resource "confluent_gateway" "pni" {
-  display_name = "${data.confluent_environment.pni.display_name}-pni-gateway"
+resource "confluent_gateway" "pni_hub" {
+  display_name = "${data.confluent_environment.pni_hub.display_name}-pni-hub-gateway"
 
   environment {
-    id = data.confluent_environment.pni.id
+    id = data.confluent_environment.pni_hub.id
   }
 
   aws_private_network_interface_gateway {
@@ -19,23 +19,23 @@ resource "confluent_gateway" "pni" {
 # The access point registers the ENIs with Confluent Cloud, establishing the private
 # connectivity path. This replaces confluent_private_link_attachment_connection.
 #
-resource "confluent_access_point" "pni" {
-  display_name = "ccloud-pni-${local.network_id}"
+resource "confluent_access_point" "pni_hub" {
+  display_name = "ccloud-pni-hub-${local.network_id}"
 
   environment {
-    id = data.confluent_environment.pni.id
+    id = data.confluent_environment.pni_hub.id
   }
 
   gateway {
-    id = confluent_gateway.pni.id
+    id = confluent_gateway.pni_hub.id
   }
 
   aws_private_network_interface {
-    network_interfaces = aws_network_interface.pni[*].id
+    network_interfaces = aws_network_interface.pni_hub[*].id
     account            = data.aws_caller_identity.current.account_id
   }
 
   depends_on = [
-    aws_network_interface.pni
+    aws_network_interface.pni_hub
   ]
 }

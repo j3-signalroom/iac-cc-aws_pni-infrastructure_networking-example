@@ -1,7 +1,7 @@
 # ===================================================================================
 # VPC AND PRIVATE SUBNETS
 # ===================================================================================
-resource "aws_vpc" "pni" {
+resource "aws_vpc" "pni_spoke" {
   cidr_block           = var.vpc_cidr
   enable_dns_hostnames = true
   enable_dns_support   = true
@@ -11,10 +11,10 @@ resource "aws_vpc" "pni" {
   }
 }
 
-resource "aws_subnet" "private" {
+resource "aws_subnet" "pni_spoke_private" {
   count = var.subnet_count
 
-  vpc_id            = aws_vpc.pni.id
+  vpc_id            = aws_vpc.pni_spoke.id
   cidr_block        = cidrsubnet(var.vpc_cidr, var.new_bits, count.index)
   availability_zone = local.available_zones[count.index]
 
@@ -27,36 +27,36 @@ resource "aws_subnet" "private" {
 }
 
 # Route table per subnet
-resource "aws_route_table" "private" {
+resource "aws_route_table" "pni_spoke_private" {
   count = var.subnet_count
   
-  vpc_id = aws_vpc.pni.id
+  vpc_id = aws_vpc.pni_spoke.id
   
   tags = {
     Name = "${var.vpc_name}-private-rt-${count.index + 1}"
   }
 }
 
-resource "aws_route_table_association" "private" {
+resource "aws_route_table_association" "pni_spoke_private" {
   count = var.subnet_count
 
-  subnet_id      = aws_subnet.private[count.index].id
-  route_table_id = aws_route_table.private[count.index].id
+  subnet_id      = aws_subnet.pni_spoke_private[count.index].id
+  route_table_id = aws_route_table.pni_spoke_private[count.index].id
 }
 
 # ============================================================================
 # TRANSIT GATEWAY ATTACHMENT
 # ============================================================================
-resource "aws_ec2_transit_gateway_vpc_attachment" "pni" {
-  subnet_ids         = aws_subnet.private[*].id
+resource "aws_ec2_transit_gateway_vpc_attachment" "pni_spoke" {
+  subnet_ids         = aws_subnet.pni_spoke_private[*].id
   transit_gateway_id = var.tgw_id
-  vpc_id             = aws_vpc.pni.id
+  vpc_id             = aws_vpc.pni_spoke.id
   
   # Enable DNS support for cross-VPC resolution
   dns_support = "enable"
 
   tags = {
-    Name        = "${aws_vpc.pni.id}-ccloud-pni-tgw-attachment"
+    Name        = "${aws_vpc.pni_spoke.id}-ccloud-pni-tgw-attachment"
     Environment = data.confluent_environment.pni.display_name
     ManagedBy   = "Terraform Cloud"
     Purpose     = "Confluent PNI connectivity"
@@ -64,97 +64,126 @@ resource "aws_ec2_transit_gateway_vpc_attachment" "pni" {
 }
 
 # Associate with Transit Gateway Route Table
-resource "aws_ec2_transit_gateway_route_table_association" "pni" {
-  transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.pni.id
+resource "aws_ec2_transit_gateway_route_table_association" "pni_spoke" {
+  transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.pni_spoke.id
   transit_gateway_route_table_id = var.tgw_rt_id
 }
 
-resource "aws_ec2_transit_gateway_route_table_propagation" "pni" {
-  transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.pni.id
+resource "aws_ec2_transit_gateway_route_table_propagation" "pni_spoke" {
+  transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.pni_spoke.id
   transit_gateway_route_table_id = var.tgw_rt_id
 }
 
 # ============================================================================
-# ROUTES: PNI VPC <-> TFC AGENT VPC
+# ROUTES: PNI SPOKE VPC <-> TFC AGENT VPC
 # ============================================================================
-resource "aws_route" "pni_to_tfc_agent" {
+resource "aws_route" "pni_spoke_to_tfc_agent" {
   count = var.subnet_count
 
-  route_table_id         = aws_route_table.private[count.index].id
+  route_table_id         = aws_route_table.pni_spoke_private[count.index].id
   destination_cidr_block = var.tfc_agent_vpc_cidr
   transit_gateway_id     = var.tgw_id
 
   depends_on = [
-    aws_ec2_transit_gateway_vpc_attachment.pni
+    aws_ec2_transit_gateway_vpc_attachment.pni_spoke
   ]
 }
 
-resource "aws_route" "tfc_agent_to_pni" {
+resource "aws_route" "tfc_agent_to_pni_spoke" {
   count = length(var.tfc_agent_vpc_rt_ids) > 0 ? length(var.tfc_agent_vpc_rt_ids) : 0
   
   route_table_id         = element(var.tfc_agent_vpc_rt_ids, count.index)
-  destination_cidr_block = aws_vpc.pni.cidr_block
+  destination_cidr_block = aws_vpc.pni_spoke.cidr_block
   transit_gateway_id     = var.tgw_id
 
   depends_on = [
-    aws_ec2_transit_gateway_vpc_attachment.pni
+    aws_ec2_transit_gateway_vpc_attachment.pni_spoke
+  ]
+}
+
+
+# ============================================================================
+# ROUTES: PNI SPOKE VPC <-> PNI HUB VPC
+# ============================================================================
+resource "aws_route" "pni_spoke_to_pni_hub" {
+  count = var.subnet_count
+  
+  route_table_id         = aws_route_table.pni_spoke_private[count.index].id
+  destination_cidr_block = var.pni_hub_vpc_cidr
+  transit_gateway_id     = var.tgw_id
+
+  depends_on = [
+    aws_ec2_transit_gateway_vpc_attachment.pni_spoke
+  ]
+}
+
+
+resource "aws_route" "pni_hub_to_pni_spoke" {
+  count = length(var.pni_hub_vpc_rt_ids) > 0 ? length(var.pni_hub_vpc_rt_ids) : 0
+  
+  route_table_id         = element(var.pni_hub_vpc_rt_ids, count.index)
+  destination_cidr_block = aws_vpc.pni_spoke.cidr_block
+  transit_gateway_id     = var.tgw_id
+
+  depends_on = [
+    aws_ec2_transit_gateway_vpc_attachment.pni_spoke
   ]
 }
 
 # ============================================================================
-# ROUTES: PNI VPC <-> VPN VPC + VPN CLIENTS
+# ROUTES: PNI SPOKE VPC <-> VPN VPC + VPN CLIENTS
 # ============================================================================
-resource "aws_route" "pni_to_vpn_client" {
+resource "aws_route" "pni_spoke_to_vpn_client" {
   count = var.subnet_count
 
-  route_table_id         = aws_route_table.private[count.index].id
+  route_table_id         = aws_route_table.pni_spoke_private[count.index].id
   destination_cidr_block = var.vpn_client_vpc_cidr
   transit_gateway_id     = var.tgw_id
 
   depends_on = [
-    aws_ec2_transit_gateway_vpc_attachment.pni
+    aws_ec2_transit_gateway_vpc_attachment.pni_spoke
   ]
 }
 
-resource "aws_route" "pni_to_vpn_vpc" {
+resource "aws_route" "pni_spoke_to_vpn_vpc" {
   count = var.subnet_count
 
-  route_table_id         = aws_route_table.private[count.index].id
+  route_table_id         = aws_route_table.pni_spoke_private[count.index].id
   destination_cidr_block = var.vpn_vpc_cidr
   transit_gateway_id     = var.tgw_id
 
   depends_on = [
-    aws_ec2_transit_gateway_vpc_attachment.pni
+    aws_ec2_transit_gateway_vpc_attachment.pni_spoke
   ]
 }
 
-resource "aws_route" "vpn_to_pni" {
+resource "aws_route" "vpn_to_pni_spoke" {
   count = length(var.vpn_vpc_rt_ids) > 0 ? length(var.vpn_vpc_rt_ids) : 0
   
   route_table_id         = element(var.vpn_vpc_rt_ids, count.index)
-  destination_cidr_block = aws_vpc.pni.cidr_block
+  destination_cidr_block = aws_vpc.pni_spoke.cidr_block
   transit_gateway_id     = var.tgw_id
 
   depends_on = [
-    aws_ec2_transit_gateway_vpc_attachment.pni
+    aws_ec2_transit_gateway_vpc_attachment.pni_spoke
   ]
 }
 
 # ============================================================================
-# CLIENT VPN ROUTES TO PNI VPC
+# CLIENT VPN ROUTES TO PNI SPOKE VPC
 # ============================================================================
-resource "aws_ec2_client_vpn_route" "to_pni" {
+resource "aws_ec2_client_vpn_route" "to_pni_spoke" {
   count = var.vpn_endpoint_id != null ? length(var.vpn_target_subnet_ids) : 0
 
   client_vpn_endpoint_id = var.vpn_endpoint_id
-  destination_cidr_block = aws_vpc.pni.cidr_block
+  destination_cidr_block = aws_vpc.pni_spoke.cidr_block
   target_vpc_subnet_id   = var.vpn_target_subnet_ids[count.index]
 }
 
-resource "aws_ec2_client_vpn_authorization_rule" "to_pni" {
+resource "aws_ec2_client_vpn_authorization_rule" "to_pni_spoke" {
   count = var.vpn_endpoint_id != null ? 1 : 0
 
   client_vpn_endpoint_id = var.vpn_endpoint_id
-  target_network_cidr    = aws_vpc.pni.cidr_block
+  target_network_cidr    = aws_vpc.pni_spoke.cidr_block
   authorize_all_groups   = true
 }

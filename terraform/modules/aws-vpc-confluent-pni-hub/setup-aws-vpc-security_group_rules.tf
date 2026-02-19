@@ -12,9 +12,9 @@
 #     connections into your network
 #   - All rules are inline to allow Terraform to revoke the default egress rule
 #
-resource "aws_security_group" "pni" {
-  name        = "ccloud-pni-${local.network_id}-${aws_vpc.pni.id}"
-  description = "Confluent Cloud PNI Security Group for ${var.vpc_name}"
+resource "aws_security_group" "pni_hub" {
+  name        = "ccloud-pni-hub-${local.network_id}-${aws_vpc.pni.id}"
+  description = "Confluent Cloud PNI Hub Security Group for ${data.confluent_environment.pni.display_name}"
   vpc_id      = aws_vpc.pni.id
 
   # -----------------------------------------------------------------------
@@ -67,7 +67,7 @@ resource "aws_security_group" "pni" {
   }
 
   tags = {
-    Name        = "ccloud-pni-${local.network_id}"
+    Name        = "ccloud-pni-hub-${local.network_id}"
     VPC         = aws_vpc.pni.id
     Environment = data.confluent_environment.pni.display_name
     ManagedBy   = "Terraform Cloud"

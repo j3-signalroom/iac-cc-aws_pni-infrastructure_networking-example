@@ -111,3 +111,9 @@ variable "subnet_count" {
   type        = number
   default     = 3
 }
+
+variable "pni_hub_vpc_cidr" {
+  description = "CIDR block for the Confluent PNI Hub VPC"
+  type        = string
+  default     = "10.3.0.0/20"
+}
