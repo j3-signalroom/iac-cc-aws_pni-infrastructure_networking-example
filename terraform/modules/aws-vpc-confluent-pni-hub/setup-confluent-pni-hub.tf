@@ -7,7 +7,7 @@ resource "confluent_gateway" "pni_hub" {
   }
 
   aws_private_network_interface_gateway {
-    region = data.aws_region.current.name
+    region = data.aws_region.current.id
     zones  = local.available_zone_ids
   }
 }
