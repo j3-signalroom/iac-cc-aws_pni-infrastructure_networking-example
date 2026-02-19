@@ -66,17 +66,12 @@ resource "aws_network_interface" "pni_hub" {
   # Calculate private IP: base_ip + (j+1) where j is the ENI number within subnet
   # floor(count.index / var.eni_number_per_subnet) gives subnet index (0, 1, 2)
   # count.index % var.eni_number_per_subnet gives ENI index within subnet (0, 1, ...)
-  private_ips = [
-    cidrhost(
-      aws_subnet.pni_hub[each.value.subnet_index].cidr_block,
-      10 + (each.value.eni_index) + 1
-    )
-  ]
+  private_ips = [each.value.ip]
 
-  description = "Confluent PNI Hub Subnet ${each.value.subnet_id} ENI ${each.value.eni_index + 1}"
+  description = each.value.description
 
   tags = {
-    Name        = "confluent-pni-hub-subnet-${each.value.subnet_id}-eni-${each.value.eni_index + 1}"
+    Name        = each.value.name
     VPC         = aws_vpc.pni_hub.id
     Environment = data.confluent_environment.pni_hub.display_name
     ManagedBy   = "Terraform Cloud"
@@ -84,11 +79,7 @@ resource "aws_network_interface" "pni_hub" {
   }
 }
 
-# ------------------------------------------------------------------------------
-# INSTANCE-ATTACH Permissions
 # Grant Confluent's AWS account the ability to attach these ENIs to their VMs
-# ------------------------------------------------------------------------------
-
 resource "aws_network_interface_permission" "pni_hub" {
   for_each = aws_network_interface.pni_hub
 

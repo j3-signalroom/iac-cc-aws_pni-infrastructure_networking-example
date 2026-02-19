@@ -31,7 +31,7 @@ resource "confluent_access_point" "pni_hub" {
   }
 
   aws_private_network_interface {
-    network_interfaces = aws_network_interface.pni_hub[*].id
+    network_interfaces = [for eni in aws_network_interface.pni_hub : eni.id]
     account            = data.aws_caller_identity.current.account_id
   }
 

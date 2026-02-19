@@ -13,11 +13,6 @@ output "vpc_pni_hub_private_subnet_ids" {
   value       = aws_subnet.pni_hub[*].id
 }
 
-output "vpc_pni_hub_eni_ids" {
-  description = "List of PNI Hub ENI IDs"
-  value       = aws_network_interface.pni_hub[*].id
-}
-
 output "vpc_pni_hub_eni_private_ips" {
   description = "Private IPs assigned to PNI Hub ENIs (one per AZ)"
   value       = [for eni in aws_network_interface.pni_hub : eni.private_ip]
@@ -61,8 +56,6 @@ output "vpc_pni_hub_subnet_details" {
       availability_zone    = subnet.availability_zone
       availability_zone_id = local.available_zone_ids[i]
       cidr_block           = subnet.cidr_block
-      eni_id               = aws_network_interface.pni_hub[i].id
-      eni_private_ip       = aws_network_interface.pni_hub[i].private_ip
     }
   }
 }

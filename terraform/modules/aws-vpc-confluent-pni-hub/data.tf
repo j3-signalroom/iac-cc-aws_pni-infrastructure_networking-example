@@ -28,11 +28,13 @@ locals {
   eni_assignments = flatten([
     for subnet_idx, subnet_id in aws_subnet.pni_hub[*].id : [
       for eni_idx in range(var.eni_number_per_subnet) : {
-        key        = "${subnet_idx}-${eni_idx}"
-        subnet_id  = subnet_id
-        cidr_block = aws_subnet.pni_hub[subnet_idx].cidr_block
-        az         = data.aws_availability_zones.available.names[subnet_idx]
-        name       = "confluent-pni-hub-subnet-${subnet_idx + 1}-eni-${eni_idx + 1}"
+        key         = "${subnet_idx}-${eni_idx}"
+        subnet_id   = subnet_id
+        cidr_block  = aws_subnet.pni_hub[subnet_idx].cidr_block
+        az          = data.aws_availability_zones.available.names[subnet_idx]
+        name        = "confluent-pni-hub-subnet-${subnet_idx + 1}-eni-${eni_idx + 1}"
+        ip          = cidrhost(aws_subnet.pni_hub[subnet_idx].cidr_block, 10 + eni_idx + 1)
+        description = "Confluent PNI Hub Subnet ${subnet_idx + 1} ENI ${eni_idx + 1}"
       }
     ]
   ])
