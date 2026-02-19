@@ -69,7 +69,7 @@ resource "aws_security_group" "pni_spoke" {
   tags = {
     Name        = "ccloud-pni-spoke-${local.network_id}"
     VPC         = aws_vpc.pni_spoke.id
-    Environment = data.confluent_environment.pni.display_name
+    Environment = data.confluent_environment.pni_spoke.display_name
     ManagedBy   = "Terraform Cloud"
   }
 }

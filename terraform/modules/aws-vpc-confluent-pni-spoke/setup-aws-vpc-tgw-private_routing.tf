@@ -56,8 +56,8 @@ resource "aws_ec2_transit_gateway_vpc_attachment" "pni_spoke" {
   dns_support = "enable"
 
   tags = {
-    Name        = "${aws_vpc.pni_spoke.id}-ccloud-pni-tgw-attachment"
-    Environment = data.confluent_environment.pni.display_name
+    Name        = "${aws_vpc.pni_spoke.id}-ccloud-pni-spoke-tgw-attachment"
+    Environment = data.confluent_environment.pni_spoke.display_name
     ManagedBy   = "Terraform Cloud"
     Purpose     = "Confluent PNI connectivity"
   }

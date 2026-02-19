@@ -13,9 +13,9 @@
 #   - All rules are inline to allow Terraform to revoke the default egress rule
 #
 resource "aws_security_group" "pni_hub" {
-  name        = "ccloud-pni-hub-${local.network_id}-${aws_vpc.pni.id}"
-  description = "Confluent Cloud PNI Hub Security Group for ${data.confluent_environment.pni.display_name}"
-  vpc_id      = aws_vpc.pni.id
+  name        = "ccloud-pni-hub-${local.network_id}-${aws_vpc.pni_hub.id}"
+  description = "Confluent Cloud PNI Hub Security Group for ${data.confluent_environment.pni_hub.display_name}"
+  vpc_id      = aws_vpc.pni_hub.id
 
   # -----------------------------------------------------------------------
   # INGRESS: HTTPS (443) — Confluent REST API, Schema Registry, admin
@@ -68,8 +68,8 @@ resource "aws_security_group" "pni_hub" {
 
   tags = {
     Name        = "ccloud-pni-hub-${local.network_id}"
-    VPC         = aws_vpc.pni.id
-    Environment = data.confluent_environment.pni.display_name
+    VPC         = aws_vpc.pni_hub.id
+    Environment = data.confluent_environment.pni_hub.display_name
     ManagedBy   = "Terraform Cloud"
   }
 }

@@ -14,7 +14,7 @@ resource "aws_vpc" "pni_hub" {
 resource "aws_subnet" "pni_hub" {
   count = var.subnet_count
 
-  vpc_id            = aws_vpc.pni.id
+  vpc_id            = aws_vpc.pni_hub.id
   cidr_block        = cidrsubnet(var.vpc_cidr, var.new_bits, count.index)
   availability_zone = local.available_zones[count.index]
 
@@ -55,7 +55,7 @@ resource "aws_ec2_transit_gateway_vpc_attachment" "pni_hub" {
   dns_support = "enable"
 
   tags = {
-    Name        = "${aws_vpc.pni_hub.id}-ccloud-pni-tgw-attachment"
+    Name        = "${aws_vpc.pni_hub.id}-ccloud-pni-hub-tgw-attachment"
     Environment = data.confluent_environment.pni_hub.display_name
     ManagedBy   = "Terraform Cloud"
     Purpose     = "Confluent PNI connectivity"
@@ -106,7 +106,7 @@ resource "aws_route" "tfc_agent_to_pni_hub" {
 resource "aws_route" "pni_hub_to_vpn_client" {
   count = var.subnet_count
 
-  route_table_id         = aws_route_table.private[count.index].id
+  route_table_id         = aws_route_table.pni_hub[count.index].id
   destination_cidr_block = var.vpn_client_vpc_cidr
   transit_gateway_id     = var.tgw_id
 
@@ -118,7 +118,7 @@ resource "aws_route" "pni_hub_to_vpn_client" {
 resource "aws_route" "pni_hub_to_vpn_vpc" {
   count = var.subnet_count
 
-  route_table_id         = aws_route_table.private[count.index].id
+  route_table_id         = aws_route_table.pni_hub[count.index].id
   destination_cidr_block = var.vpn_vpc_cidr
   transit_gateway_id     = var.tgw_id
 

@@ -1,9 +1,9 @@
 resource "aws_network_acl" "pni_hub" {
-  vpc_id     = aws_vpc.pni.id
-  subnet_ids = aws_subnet.pni[*].id
+  vpc_id     = aws_vpc.pni_hub.id
+  subnet_ids = aws_subnet.pni_hub[*].id
 
   tags = merge(local.common_tags, {
-    Name = "nacl-confluent-pni-hub-${data.confluent_environment.pni.display_name}"
+    Name = "nacl-confluent-pni-hub-${data.confluent_environment.pni_hub.display_name}"
   })
 }
 
@@ -60,25 +60,25 @@ resource "aws_network_interface" "pni_hub" {
   for_each = { for eni in local.eni_assignments : eni.key => eni }
 
 
-  subnet_id = aws_subnet.private[floor(count.index / var.eni_number_per_subnet)].id
-  security_groups = [aws_security_group.pni.id]
+  subnet_id = each.value.subnet_id
+  security_groups = [aws_security_group.pni_hub.id]
 
   # Calculate private IP: base_ip + (j+1) where j is the ENI number within subnet
   # floor(count.index / var.eni_number_per_subnet) gives subnet index (0, 1, 2)
   # count.index % var.eni_number_per_subnet gives ENI index within subnet (0, 1, ...)
   private_ips = [
     cidrhost(
-      aws_subnet.private[floor(count.index / var.eni_number_per_subnet)].cidr_block,
-      10 + (count.index % var.eni_number_per_subnet) + 1
+      aws_subnet.pni_hub[each.value.subnet_index].cidr_block,
+      10 + (each.value.eni_index) + 1
     )
   ]
 
-  description = "Confluent PNI Hub Subnet ${floor(count.index / var.eni_number_per_subnet)} ENI ${(count.index % var.eni_number_per_subnet) + 1}"
+  description = "Confluent PNI Hub Subnet ${each.value.subnet_id} ENI ${each.value.eni_index + 1}"
 
   tags = {
-    Name        = "confluent-pni-hub-subnet-${floor(count.index / var.eni_number_per_subnet)}-eni-${(count.index % var.eni_number_per_subnet) + 1}"
-    VPC         = aws_vpc.pni.id
-    Environment = data.confluent_environment.pni.display_name
+    Name        = "confluent-pni-hub-subnet-${each.value.subnet_id}-eni-${each.value.eni_index + 1}"
+    VPC         = aws_vpc.pni_hub.id
+    Environment = data.confluent_environment.pni_hub.display_name
     ManagedBy   = "Terraform Cloud"
     Purpose     = "Confluent PNI connectivity"
   }
@@ -90,9 +90,9 @@ resource "aws_network_interface" "pni_hub" {
 # ------------------------------------------------------------------------------
 
 resource "aws_network_interface_permission" "pni_hub" {
-  for_each = aws_network_interface.pni
+  for_each = aws_network_interface.pni_hub
 
   network_interface_id = each.value.id
-  aws_account_id       = confluent_gateway.pni.aws_private_network_interface_gateway.account
+  aws_account_id       = confluent_gateway.pni_hub.aws_private_network_interface_gateway[0].account
   permission           = "INSTANCE-ATTACH"
 }
