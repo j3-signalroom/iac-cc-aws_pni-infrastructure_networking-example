@@ -17,6 +17,7 @@
 #                                --vpn-vpc-rt-ids=<VPN_VPC_RT_IDs>
 #                                --vpn-endpoint-id=<VPN_ENDPOINT_ID>
 #                                --vpn-target-subnet-ids=<VPN_TARGET_SUBNET_IDs>
+#                                --pni-hub-vpc-cidr=<PNI_HUB_VPC_CIDR>
 #
 #
 
@@ -53,7 +54,7 @@ TERRAFORM_DIR="$SCRIPT_DIR/terraform"
 
 print_info "Terraform Directory: $TERRAFORM_DIR"
 
-argument_list="--profile=<SSO_PROFILE_NAME> --confluent-api-key=<CONFLUENT_API_KEY> --confluent-api-secret=<CONFLUENT_API_SECRET> --tfe-token=<TFE_TOKEN> --tgw-id=<TGW_ID> --tgw-rt-id=<TGW_RT_ID> --tfc-agent-vpc-id=<TFC_AGENT_VPC_ID> --tfc-agent-vpc-rt-ids=<TFC_AGENT_VPC_RT_IDs> --vpn-vpc-id=<VPN_VPC_ID> --vpn-vpc-rt-ids=<VPN_VPC_RT_IDs>"
+argument_list="--profile=<SSO_PROFILE_NAME> --confluent-api-key=<CONFLUENT_API_KEY> --confluent-api-secret=<CONFLUENT_API_SECRET> --tfe-token=<TFE_TOKEN> --tgw-id=<TGW_ID> --tgw-rt-id=<TGW_RT_ID> --tfc-agent-vpc-id=<TFC_AGENT_VPC_ID> --tfc-agent-vpc-rt-ids=<TFC_AGENT_VPC_RT_IDs> --vpn-vpc-id=<VPN_VPC_ID> --vpn-vpc-rt-ids=<VPN_VPC_RT_IDs> --pni-hub-vpc-cidr=<PNI_HUB_VPC_CIDR>"
 
 # Check required command (create or destroy) was supplied
 case $1 in
@@ -65,7 +66,7 @@ case $1 in
     echo
     print_error "(Error Message 001)  You did not specify one of the commands: create | destroy."
     echo
-    print_error "Usage:  Require all ten arguments ---> `basename $0`=<create | destroy> $argument_list"
+    print_error "Usage:  Require all eleven arguments ---> `basename $0`=<create | destroy> $argument_list"
     echo
     exit 85 # Common GNU/Linux Exit Code for 'Interrupted system call should be restarted'
     ;;
@@ -136,7 +137,7 @@ then
     echo
     print_error "(Error Message 002)  You did not include the proper use of the --profile=<SSO_PROFILE_NAME> argument in the call."
     echo
-    print_error "Usage:  Require all ten arguments ---> `basename $0 $1` $argument_list"
+    print_error "Usage:  Require all eleven arguments ---> `basename $0 $1` $argument_list"
     echo
     exit 85 # Common GNU/Linux Exit Code for 'Interrupted system call should be restarted'
 fi
@@ -147,7 +148,7 @@ then
     echo
     print_error "(Error Message 003)  You did not include the proper use of the --confluent-api-key=<CONFLUENT_API_KEY> argument in the call."
     echo
-    print_error "Usage:  Require all ten arguments ---> `basename $0 $1` $argument_list"
+    print_error "Usage:  Require all eleven arguments ---> `basename $0 $1` $argument_list"
     echo
     exit 85 # Common GNU/Linux Exit Code for 'Interrupted system call should be restarted'
 fi
@@ -158,7 +159,7 @@ then
     echo
     print_error "(Error Message 004)  You did not include the proper use of the --confluent-api-secret=<CONFLUENT_API_SECRET> argument in the call."
     echo
-    print_error "Usage:  Require all ten arguments ---> `basename $0 $1` $argument_list"
+    print_error "Usage:  Require all eleven arguments ---> `basename $0 $1` $argument_list"
     echo
     exit 85 # Common GNU/Linux Exit Code for 'Interrupted system call should be restarted'
 fi
@@ -169,7 +170,7 @@ then
     echo
     print_error "(Error Message 005)  You did not include the proper use of the --tfe-token=<TFE_TOKEN> argument in the call."
     echo
-    print_error "Usage:  Require all ten arguments ---> `basename $0 $1` $argument_list"
+    print_error "Usage:  Require all eleven arguments ---> `basename $0 $1` $argument_list"
     echo
     exit 85 # Common GNU/Linux Exit Code for 'Interrupted system call should be restarted'
 fi
@@ -180,7 +181,7 @@ then
     echo
     print_error "(Error Message 006)  You did not include the proper use of the --tgw-id=<TGW_ID> argument in the call."
     echo
-    print_error "Usage:  Require all ten arguments ---> `basename $0 $1` $argument_list"
+    print_error "Usage:  Require all eleven arguments ---> `basename $0 $1` $argument_list"
     echo
     exit 85 # Common GNU/Linux Exit Code for 'Interrupted system call should be restarted'
 fi
@@ -191,7 +192,7 @@ then
     echo
     print_error "(Error Message 007)  You did not include the proper use of the --tgw-rt-id=<TGW_RT_ID> argument in the call."
     echo
-    print_error "Usage:  Require all ten arguments ---> `basename $0 $1` $argument_list"
+    print_error "Usage:  Require all eleven arguments ---> `basename $0 $1` $argument_list"
     echo
     exit 85 # Common GNU/Linux Exit Code for 'Interrupted system call should be restarted'
 fi
@@ -202,7 +203,7 @@ then
     echo
     print_error "(Error Message 008)  You did not include the proper use of the --tfc-agent-vpc-id=<TFC_AGENT_VPC_ID> argument in the call."
     echo
-    print_error "Usage:  Require all ten arguments ---> `basename $0 $1` $argument_list"
+    print_error "Usage:  Require all eleven arguments ---> `basename $0 $1` $argument_list"
     echo
     exit 85 # Common GNU/Linux Exit Code for 'Interrupted system call should be restarted'
 fi
@@ -213,7 +214,7 @@ then
     echo
     print_error "(Error Message 009)  You did not include the proper use of the --vpn-vpc-id=<VPN_VPC_ID> argument in the call."
     echo
-    print_error "Usage:  Require all ten arguments ---> `basename $0 $1` $argument_list"
+    print_error "Usage:  Require all eleven arguments ---> `basename $0 $1` $argument_list"
     echo
     exit 85 # Common GNU/Linux Exit Code for 'Interrupted system call should be restarted'
 fi
@@ -224,7 +225,7 @@ then
     echo
     print_error "(Error Message 010)  You did not include the proper use of the --tfc-agent-vpc-rt-ids=<TFC_AGENT_VPC_RT_IDs> argument in the call."
     echo
-    print_error "Usage:  Require all ten arguments ---> `basename $0 $1` $argument_list"
+    print_error "Usage:  Require all eleven arguments ---> `basename $0 $1` $argument_list"
     echo
     exit 85 # Common GNU/Linux Exit Code for 'Interrupted system call should be restarted'
 fi
@@ -235,7 +236,7 @@ then
     echo
     print_error "(Error Message 011)  You did not include the proper use of the --vpn-vpc-rt-ids=<VPN_VPC_RT_IDs> argument in the call."
     echo
-    print_error "Usage:  Require all ten arguments ---> `basename $0 $1` $argument_list"
+    print_error "Usage:  Require all eleven arguments ---> `basename $0 $1` $argument_list"
     echo
     exit 85 # Common GNU/Linux Exit Code for 'Interrupted system call should be restarted'
 fi
@@ -246,7 +247,7 @@ then
     echo
     print_error "(Error Message 012)  You did not include the proper use of the --vpn-endpoint-id=<VPN_ENDPOINT_ID> argument in the call."
     echo
-    print_error "Usage:  Require all ten arguments ---> `basename $0 $1` $argument_list"
+    print_error "Usage:  Require all eleven arguments ---> `basename $0 $1` $argument_list"
     echo
     exit 85 # Common GNU/Linux Exit Code for 'Interrupted system call should be restarted'
 fi
@@ -257,7 +258,18 @@ then
     echo
     print_error "(Error Message 013)  You did not include the proper use of the --vpn-target-subnet-ids=<VPN_TARGET_SUBNET_IDs> argument in the call."
     echo
-    print_error "Usage:  Require all ten arguments ---> `basename $0 $1` $argument_list"
+    print_error "Usage:  Require all eleven arguments ---> `basename $0 $1` $argument_list"
+    echo
+    exit 85 # Common GNU/Linux Exit Code for 'Interrupted system call should be restarted'
+fi
+
+# Check required --pni-hub-vpc-cidr argument was supplied
+if [ -z "$pni_hub_vpc_cidr" ]
+then
+    echo
+    print_error "(Error Message 014)  You did not include the proper use of the --pni-hub-vpc-cidr=<PNI_HUB_VPC_CIDR> argument in the call."
+    echo
+    print_error "Usage:  Require all eleven arguments ---> `basename $0 $1` $argument_list"
     echo
     exit 85 # Common GNU/Linux Exit Code for 'Interrupted system call should be restarted'
 fi
@@ -297,6 +309,7 @@ deploy_infrastructure() {
     # \nvpn_vpc_rt_ids=${vpn_vpc_rt_ids}\
     # \nvpn_endpoint_id=\"${vpn_endpoint_id}\"\
     # \nvpn_target_subnet_ids=\"${vpn_target_subnet_ids}\"\
+    # \npni_hub_vpc_cidr=\"${pni_hub_vpc_cidr}\"\    
     # \ntgw_id=\"${tgw_id}\"
     # \ntgw_rt_id=\"${tgw_rt_id}\"" > terraform.tfvars
 
@@ -318,6 +331,7 @@ deploy_infrastructure() {
     export TF_VAR_vpn_vpc_rt_ids=${vpn_vpc_rt_ids}
     export TF_VAR_vpn_endpoint_id="${vpn_endpoint_id}"
     export TF_VAR_vpn_target_subnet_ids="${vpn_target_subnet_ids}"
+    export TF_VAR_pni_hub_vpc_cidr="${pni_hub_vpc_cidr}"
 
     # Initialize Terraform
     print_info "Initializing Terraform..."
@@ -378,7 +392,8 @@ undeploy_infrastructure() {
     export TF_VAR_vpn_vpc_rt_ids=${vpn_vpc_rt_ids}
     export TF_VAR_vpn_endpoint_id="${vpn_endpoint_id}"
     export TF_VAR_vpn_target_subnet_ids="${vpn_target_subnet_ids}"
-
+    export TF_VAR_pni_hub_vpc_cidr="${pni_hub_vpc_cidr}"
+    
     # Destroy
     print_info "Running Terraform destroy..."
     
