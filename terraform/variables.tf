@@ -100,7 +100,7 @@ variable "vpn_target_subnet_ids" {
   type        = string
 }
 
-variable "num_eni_per_subnet" {
+variable "eni_number_per_subnet" {
   description = "Number of ENIs to create per subnet"
   type        = number
   default     = 17
@@ -110,4 +110,10 @@ variable "subnet_count" {
   description = "Number of subnets to create"
   type        = number
   default     = 3
+}
+
+variable "pni_hub_vpc_cidr" {
+  description = "CIDR block for the Confluent PNI Hub VPC"
+  type        = string
+  default     = "10.3.0.0/20"
 }

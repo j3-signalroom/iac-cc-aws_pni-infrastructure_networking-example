@@ -1,13 +1,3 @@
-variable "aws_region" {
-  description = "AWS region to deploy resources in"
-  type        = string
-}
-
-variable "aws_account_id" {
-  description = "AWS Account ID where resources will be deployed"
-  type        = string
-}
-
 variable "vpc_cidr" {
   description = "CIDR block for the VPC"
   type        = string
@@ -96,8 +86,18 @@ variable "confluent_gateway_id" {
   default     = null
 }
 
-variable "num_eni_per_subnet" {
+variable "eni_number_per_subnet" {
   description = "Number of ENIs to create per subnet"
   type        = number
   default     = 17
+}
+
+variable "pni_hub_vpc_cidr" {
+  description = "CIDR block of the Confluent PNI hub VPC (for routing purposes)"
+  type        = string
+}
+
+variable "pni_hub_vpc_rt_ids" {
+  description = "List of PNI Hub VPC Route Table IDs to associate with the Transit Gateway attachment"
+  type        = list(string)
 }
