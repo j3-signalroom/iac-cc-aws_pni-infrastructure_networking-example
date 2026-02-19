@@ -13,6 +13,10 @@ output "vpc_pni_spoke_private_subnet_ids" {
   value       = aws_subnet.pni_spoke_private[*].id
 }
 
+output "vpc_pni_spoke_rt_ids" {
+  value = aws_route_table.pni_spoke_private[*].id
+}
+
 output "vpc_pni_spoke_security_group_id" {
   description = "Security group ID attached to PNI ENIs"
   value       = aws_security_group.pni_spoke.id
