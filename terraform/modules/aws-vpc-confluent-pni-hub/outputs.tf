@@ -18,6 +18,11 @@ output "vpc_pni_hub_eni_private_ips" {
   value       = [for eni in aws_network_interface.pni_hub : eni.private_ip]
 }
 
+output "vpc_pni_hub_eni_ids" {
+  description = "ENI IDs for the PNI Hub ENIs (one per AZ)"
+  value       = [for eni in aws_network_interface.pni_hub : eni.id]
+}
+
 output "vpc_pni_hub_rt_ids" {
   value = aws_route_table.pni_hub[*].id
 }
