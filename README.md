@@ -6,9 +6,44 @@
 
 ---
 
-## Overview
+**Table of Contents**
+<!-- toc -->
++ [1.0 Overview](#10-overview)
++ [2.0 Architecture](#20-architecture)
++ [3.0 Module Structure](#30-module-structure)
++ [4.0 Prerequisites](#40-prerequisites)
+    + [4.1 Client VPN, Centralized DNS Server, and Transit Gateway](#41-client-vpn-centralized-dns-server-and-transit-gateway)
+        - [4.1.1 Key Features Required for Confluent PNI to Work](#411-key-features-required-for-confluent-pni-to-work)
+            + [**4.1.1.1 Hub-and-Spoke Network Architecture via Transit Gateway**](#4111-hub-and-spoke-network-architecture-via-transit-gateway)
+            + [**4.1.1.2 Client VPN Integration**](#4112-client-vpn-integration)
+            + [**4.1.1.3 Cross-VPC Routing**](#4113-cross-vpc-routing)
+            + [**4.1.1.4 Security & Observability**](#4114-security--observability)
+    + [4.2 Terraform Cloud Agent](#42-terraform-cloud-agent)
+        - [4.2.1 Key Features Required for Confluent PNI to Work (TFC Agent Configuration)](#421-key-features-required-for-confluent-pni-to-work-tfc-agent-configuration)
+            + [**4.2.1.1 Custom DHCP Options for DNS Resolution**](#4211-custom-dhcp-options-for-dns-resolution)
+            + [**4.2.1.2 Transit Gateway Connectivity**](#4212-transit-gateway-connectivity)
+            + [**4.2.1.3 Security Group Configuration for Kafka Traffic**](#4213-security-group-configuration-for-kafka-traffic)
+            + [**4.2.1.4 AWS VPC Endpoints for Private Service Access**](#4214-aws-vpc-endpoints-for-private-service-access)
+            + [**4.2.1.5 ECS Fargate Deployment Pattern**](#4215-ecs-fargate-deployment-pattern)
+            + [**4.2.1.6 IAM Permissions for Infrastructure Management**](#4216-iam-permissions-for-infrastructure-management)
+            + [**4.2.1.7 Network Architecture Summary**](#4217-network-architecture-summary)
++ [5.0 Configuration](#50-configuration)
+    + [5.1 Key Input Variables](#51-key-input-variables)
+    + [5.2 CIDR Allocations](#52-cidr-allocations)
++ [6.0 Deployment](#60-deployment)
+    + [6.1 Create](#61-create)
+    + [6.2 Destroy](#62-destroy)
++ [7.0 Outputs](#70-outputs)
++ [8.0 Security Design](#80-security-design)
++ [9.0 How PNI Differs from PrivateLink](#90-how-pni-differs-from-privatelink)
++ [10.0 Resources](#100-resources)
+<!-- tocstop -->
 
-This repository provisions a complete, production-grade private networking topology that connects AWS workload VPCs to Confluent Cloud Enterprise Kafka clusters using **Private Network Interface (PNI)** — Confluent's next-generation private connectivity model that replaces PrivateLink with customer-owned ENIs placed directly in your VPCs.
+---
+
+## **1.0 Overview**
+
+This repo provisions a complete, production-grade private networking topology that connects AWS workload VPCs to Confluent Cloud Enterprise Kafka clusters using **Private Network Interface (PNI)**, Confluent's next-generation private connectivity model that replaces PrivateLink with customer-owned ENIs placed directly in your VPCs.
 
 The architecture follows a **Hub-and-Spoke** pattern:
 
@@ -16,11 +51,9 @@ The architecture follows a **Hub-and-Spoke** pattern:
 - **PNI Spoke VPCs** (sandbox, shared) each host a Confluent Cloud Enterprise Kafka cluster and peer connectivity through the hub via AWS Transit Gateway.
 - All VPCs are stitched together through an existing **AWS Transit Gateway (TGW)**, enabling a VPN-connected developer/operator to reach Confluent Cloud endpoints without traversing the public internet.
 
-State is managed remotely in **Terraform Cloud** (organization: `signalroom`, workspace: `iac-cc-aws-pni-infrastructure-networking-example`).
-
 ---
 
-## Architecture
+## **2.0 Architecture**
 
 ```mermaid
 flowchart TD
@@ -78,7 +111,7 @@ flowchart TD
 
 ---
 
-## Module Structure
+## **3.0 Module Structure**
 
 ```
 .
@@ -109,25 +142,308 @@ flowchart TD
 
 ---
 
-## Prerequisites
+## **4.0 Prerequisites**
+This project assumes you have the following prerequisites in place:
+- Client VPN, Centralized DNS Server, and Transit Gateway
+- Terraform Cloud Agent
 
-| Requirement | Detail |
-|---|---|
-| Terraform | `>= 1.5.0` |
-| Terraform Cloud | Organization `signalroom`, workspace pre-created |
-| AWS account | SSO profile with sufficient IAM permissions (VPC, TGW, ENI, Client VPN) |
-| Confluent Cloud account | API key/secret with environment-level admin |
-| Existing AWS Transit Gateway | TGW ID + associated Route Table ID |
-| Existing VPN VPC | VPC ID, route table IDs, Client VPN endpoint ID, target subnet IDs |
-| Existing TFC Agent VPC | VPC ID + route table IDs |
+### **4.1 Client VPN, Centralized DNS Server, and Transit Gateway**
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#1a73e8', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1557b0', 'lineColor': '#5f6368', 'secondaryColor': '#34a853', 'tertiaryColor': '#fbbc04'}}}%%
+
+flowchart TB
+    subgraph USERS["👤 Remote Users"]
+        VPNClient["VPN Client<br/>(OpenVPN/AWS Client)"]
+    end
+
+    subgraph AWS["☁️ AWS Cloud"]
+        subgraph VPN_VPC["Client VPN VPC<br/>var.vpn_vpc_cidr"]
+            VPNEndpoint["AWS Client VPN<br/>Endpoint"]
+            VPNSubnets["VPN Subnets<br/>(Multi-AZ)"]
+            VPNSG["Security Group<br/>client-vpn-sg"]
+            VPNResolver["Route53 Outbound<br/>Resolver Endpoint"]
+            VPNEndpoint --> VPNSubnets
+            VPNSubnets --> VPNSG
+            VPNSubnets --> VPNResolver
+        end
+
+        subgraph TGW["Transit Gateway<br/>signalroom-tgw"]
+            TGWCore["TGW Core<br/>ASN: 64512"]
+            TGWRouteTable["Custom Route<br/>Tables"]
+            TGWCore --> TGWRouteTable
+        end
+
+        subgraph DNS_VPC["DNS VPC (Centralized)<br/>var.dns_vpc_cidr"]
+            R53Inbound["Route53 Inbound<br/>Resolver Endpoint"]
+            R53PHZ["Private Hosted Zones<br/>*.aws.confluent.cloud"]
+            R53Inbound --> R53PHZ
+        end
+
+        subgraph TFC_VPC["TFC Agent VPC<br/>var.tfc_agent_vpc_cidr"]
+            TFCAgent["Terraform Cloud<br/>Agent"]
+        end
+
+        subgraph WORKLOAD_VPCs["Workload VPCs"]
+            subgraph WL1["Workload VPC 1"]
+                VPCE1["VPC Endpoint<br/>(PrivateLink)"]
+            end
+            subgraph WL2["Workload VPC N..."]
+                VPCEN["VPC Endpoint<br/>(PrivateLink)"]
+            end
+        end
+
+        ACM["ACM Certificates<br/>(Server & Client)"]
+        CWLogs["CloudWatch Logs<br/>VPN & Flow Logs"]
+    end
+
+    subgraph CONFLUENT["☁️ Confluent Cloud"]
+        PrivateLinkService["PrivateLink Service<br/>Endpoint"]
+        Kafka["Kafka Cluster<br/>(Private)"]
+        PrivateLinkService --> Kafka
+    end
+
+    %% Connections
+    VPNClient -->|"Mutual TLS<br/>Authentication"| VPNEndpoint
+    ACM -.->|"Certificate Auth"| VPNEndpoint
+    
+    VPN_VPC -->|"TGW Attachment"| TGW
+    DNS_VPC -->|"TGW Attachment"| TGW
+    TFC_VPC -->|"TGW Attachment"| TGW
+    WL1 -->|"TGW Attachment"| TGW
+    WL2 -->|"TGW Attachment"| TGW
+
+    VPNResolver -->|"DNS Forwarding<br/>Rule"| R53Inbound
+    R53PHZ -->|"Returns Private<br/>Endpoint IPs"| VPCE1
+
+    VPCE1 -->|"AWS PrivateLink"| PrivateLinkService
+    VPCEN -->|"AWS PrivateLink"| PrivateLinkService
+
+    VPNEndpoint -.->|"Logs"| CWLogs
+    TGW -.->|"Flow Logs"| CWLogs
+
+    %% Styling
+    classDef userStyle fill:#4285f4,stroke:#1557b0,stroke-width:2px,color:#fff
+    classDef vpcStyle fill:#e8f0fe,stroke:#1a73e8,stroke-width:2px
+    classDef tgwStyle fill:#fef7e0,stroke:#f9ab00,stroke-width:3px
+    classDef dnsStyle fill:#e6f4ea,stroke:#34a853,stroke-width:2px
+    classDef confluentStyle fill:#f3e8fd,stroke:#9334e6,stroke-width:2px
+    classDef serviceStyle fill:#fff,stroke:#5f6368,stroke-width:1px
+
+    class USERS userStyle
+    class VPN_VPC,TFC_VPC,WORKLOAD_VPCs,WL1,WL2 vpcStyle
+    class TGW tgwStyle
+    class DNS_VPC dnsStyle
+    class CONFLUENT confluentStyle
+```
+
+#### **4.1.1 Key Features Required for Confluent PNI to Work**
+
+##### **4.1.1.1 Hub-and-Spoke Network Architecture via Transit Gateway**
+- Transit Gateway serves as the central routing hub connecting all VPCs
+- Disabled default route table association/propagation for explicit routing control
+- DNS support enabled on the TGW (`dns_support = "enable"`)
+- Custom route tables for fine-grained traffic control between VPCs
+
+##### **4.1.1.2 Client VPN Integration**
+- Mutual TLS authentication using ACM certificates (server + client)
+- Split tunnel configuration for routing only Confluent traffic through VPN
+- Authorization rules controlling which CIDRs VPN clients can access
+- Routes added to VPN endpoint for all workload VPC CIDRs via Transit Gateway
+
+##### **4.1.1.3 Cross-VPC Routing**
+- TGW attachments for: VPN VPC, DNS VPC, TFC Agent VPC, and all Workload VPCs
+- Route tables in each VPC with routes to other VPCs via TGW
+- Workload VPC CIDRs aggregated and distributed to VPN client routes
+
+##### **4.1.1.4 Security & Observability**
+- Dedicated security groups per component (VPN endpoint, etc.)
+- VPC Flow Logs and TGW Flow Logs to CloudWatch
+- VPN connection logging for audit trails
+- IAM roles with least-privilege for flow log delivery
+
+### **4.2 Terraform Cloud Agent**
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#1a73e8', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1557b0', 'lineColor': '#5f6368', 'secondaryColor': '#34a853', 'tertiaryColor': '#fbbc04'}}}%%
+
+flowchart TB
+    subgraph TERRAFORM_CLOUD["☁️ Terraform Cloud (HCP)"]
+        TFC["Terraform Cloud<br/>API & Workspaces"]
+        AgentPool["Agent Pool<br/>(signalroom)"]
+    end
+
+    subgraph AWS["☁️ AWS Cloud"]
+        subgraph TFC_AGENT_VPC["TFC Agent VPC<br/>var.vpc_cidr"]
+            subgraph PUBLIC_SUBNETS["Public Subnets (Multi-AZ)"]
+                IGW["Internet<br/>Gateway"]
+                NAT1["NAT Gateway<br/>AZ-1"]
+                NAT2["NAT Gateway<br/>AZ-2"]
+            end
+            
+            subgraph PRIVATE_SUBNETS["Private Subnets (Multi-AZ)"]
+                subgraph ECS["ECS Fargate Cluster"]
+                    TFCAgent1["TFC Agent<br/>Container"]
+                    TFCAgent2["TFC Agent<br/>Container"]
+                end
+                
+                subgraph AWS_ENDPOINTS["AWS VPC Endpoints"]
+                    VPCE_SM["Secrets Manager<br/>Endpoint"]
+                    VPCE_CW["CloudWatch Logs<br/>Endpoint"]
+                    VPCE_ECR["ECR API/DKR<br/>Endpoints"]
+                    VPCE_S3["S3 Gateway<br/>Endpoint"]
+                end
+                
+                CONFLUENT_SG["Confluent PrivateLink<br/>Security Group"]
+            end
+            
+            DHCP["DHCP Options<br/>(Custom DNS)"]
+            TFC_AGENT_SG["TFC Agent<br/>Security Group"]
+        end
+
+        subgraph TGW["Transit Gateway<br/>signalroom-tgw"]
+            TGWCore["TGW Core"]
+            TGWRT["Route Table"]
+        end
+
+        subgraph DNS_VPC["DNS VPC (Centralized)<br/>var.dns_vpc_cidr"]
+            R53Inbound["Route53 Inbound<br/>Resolver"]
+            PHZ["Private Hosted Zones<br/>*.aws.confluent.cloud"]
+        end
+
+        subgraph CLIENT_VPN_VPC["Client VPN VPC<br/>var.client_vpn_vpc_cidr"]
+            VPNEndpoint["Client VPN<br/>Endpoint"]
+        end
+
+        subgraph WORKLOAD_VPCs["Workload VPCs<br/>(Confluent PrivateLink)"]
+            subgraph WL1["Workload VPC 1"]
+                VPCE1["PrivateLink<br/>Endpoint"]
+            end
+            subgraph WL2["Workload VPC N"]
+                VPCEN["PrivateLink<br/>Endpoint"]
+            end
+        end
+
+        SecretsManager["AWS Secrets Manager<br/>(TFC Agent Token)"]
+        CloudWatch["CloudWatch Logs"]
+        ECR_Registry["ECR Registry<br/>(hashicorp/tfc-agent)"]
+    end
+
+    subgraph CONFLUENT["☁️ Confluent Cloud"]
+        PrivateLinkSvc["PrivateLink<br/>Service"]
+        Kafka["Kafka Cluster<br/>(Private)"]
+    end
+
+    %% External Connections
+    TFC <-->|"HTTPS/443<br/>via NAT"| TFCAgent1
+    TFC <-->|"HTTPS/443<br/>via NAT"| TFCAgent2
+    AgentPool -.->|"Agent Registration"| TFCAgent1
+
+    %% Internal VPC Connections
+    TFCAgent1 --> TFC_AGENT_SG
+    TFCAgent2 --> TFC_AGENT_SG
+    TFCAgent1 --> VPCE_SM
+    TFCAgent2 --> VPCE_CW
+    
+    VPCE_SM -.->|"Private DNS"| SecretsManager
+    VPCE_CW -.->|"Private DNS"| CloudWatch
+    VPCE_ECR -.->|"Private DNS"| ECR_Registry
+
+    NAT1 --> IGW
+    NAT2 --> IGW
+    TFCAgent1 -->|"0.0.0.0/0"| NAT1
+    TFCAgent2 -->|"0.0.0.0/0"| NAT2
+
+    %% DHCP & DNS Flow
+    DHCP -->|"DNS Servers:<br/>VPC + Centralized"| TFCAgent1
+    TFCAgent1 -->|"DNS Query:<br/>*.confluent.cloud"| R53Inbound
+
+    %% Transit Gateway Connections
+    TFC_AGENT_VPC -->|"TGW Attachment"| TGW
+    DNS_VPC -->|"TGW Attachment"| TGW
+    CLIENT_VPN_VPC -->|"TGW Attachment"| TGW
+    WL1 -->|"TGW Attachment"| TGW
+    WL2 -->|"TGW Attachment"| TGW
+
+    %% Route Propagation
+    TGWCore --> TGWRT
+
+    %% DNS Resolution
+    R53Inbound --> PHZ
+    PHZ -->|"Returns Private IPs"| VPCE1
+
+    %% PrivateLink Connections
+    VPCE1 -->|"AWS PrivateLink"| PrivateLinkSvc
+    VPCEN -->|"AWS PrivateLink"| PrivateLinkSvc
+    PrivateLinkSvc --> Kafka
+
+    %% TFC Agent to Workload VPCs
+    TFC_AGENT_SG -->|"HTTPS/443<br/>Kafka/9092"| CONFLUENT_SG
+    CONFLUENT_SG -->|"via TGW"| VPCE1
+    CONFLUENT_SG -->|"via TGW"| VPCEN
+
+    %% Styling
+    classDef tfcStyle fill:#5c4ee5,stroke:#3d32a8,stroke-width:2px,color:#fff
+    classDef vpcStyle fill:#e8f0fe,stroke:#1a73e8,stroke-width:2px
+    classDef tgwStyle fill:#fef7e0,stroke:#f9ab00,stroke-width:3px
+    classDef dnsStyle fill:#e6f4ea,stroke:#34a853,stroke-width:2px
+    classDef confluentStyle fill:#f3e8fd,stroke:#9334e6,stroke-width:2px
+    classDef endpointStyle fill:#fce8e6,stroke:#ea4335,stroke-width:1px
+    classDef ecsStyle fill:#fff3e0,stroke:#ff9800,stroke-width:2px
+
+    class TERRAFORM_CLOUD tfcStyle
+    class TFC_AGENT_VPC,CLIENT_VPN_VPC,WORKLOAD_VPCs,WL1,WL2 vpcStyle
+    class TGW tgwStyle
+    class DNS_VPC dnsStyle
+    class CONFLUENT confluentStyle
+    class AWS_ENDPOINTS,VPCE_SM,VPCE_CW,VPCE_ECR,VPCE_S3 endpointStyle
+    class ECS ecsStyle
+```
+
+#### **4.2.1 Key Features Required for Confluent PNI to Work (TFC Agent Configuration)**
+
+##### **4.2.1.1 Custom DHCP Options for DNS Resolution**
+- DHCP Options Set configured with **dual DNS servers**: VPC default DNS (`cidrhost(vpc_cidr, 2)`) AND centralized DNS VPC resolver IPs
+- Region-aware domain name configuration (`ec2.internal` for us-east-1, `{region}.compute.internal` for others)
+- Associates TFC Agent VPC with custom DHCP options to route Confluent domain queries to the central DNS infrastructure
+
+##### **4.2.1.2 Transit Gateway Connectivity**
+- TFC Agent VPC attached to shared Transit Gateway with DNS support enabled
+- Explicit route table association and route propagation (not using TGW defaults)
+- Routes added from private subnets to: DNS VPC, and Client VPN VPC
+- Flattened route map pattern (`for_each`) ensures routes are created for every workload VPC CIDR
+
+##### **4.2.1.3 Security Group Configuration for Kafka Traffic**
+- **TFC Agent Security Group** with egress rules for:
+  - HTTPS (443) and Kafka (9092) to each workload VPC CIDR
+  - DNS (UDP/TCP 53) to DNS VPC CIDR specifically
+  - General HTTPS/HTTP for Terraform Cloud API and package downloads
+
+##### **4.2.1.4 AWS VPC Endpoints for Private Service Access**
+- **Interface endpoints** with private DNS enabled for: Secrets Manager, CloudWatch Logs, ECR API, ECR DKR
+- **S3 Gateway endpoint** (required for ECR image layer pulls)
+- Dedicated security group for VPC endpoints allowing HTTPS from within VPC
+- Eliminates NAT Gateway dependency for AWS service calls
+
+##### **4.2.1.5 ECS Fargate Deployment Pattern**
+- TFC Agents run in private subnets with `assign_public_ip = false`
+- NAT Gateways per AZ for outbound internet (Terraform Cloud API communication)
+- Agent token stored in Secrets Manager, fetched via VPC Endpoint
+- Container health checks and deployment circuit breaker for reliability
+
+##### **4.2.1.6 IAM Permissions for Infrastructure Management**
+- Task role with Transit Gateway, VPC, Route53 Resolver, and Client VPN management permissions
+- Execution role with Secrets Manager access for agent token retrieval
+- KMS permissions scoped to Secrets Manager service for encryption/decryption
+
+##### **4.2.1.7 Network Architecture Summary**
+- **Hub-and-spoke model**: TGW connects TFC Agent VPC → DNS VPC → Workload VPCs
 
 ---
 
-## Configuration
+## **5.0 Configuration**
 
 All sensitive values are passed as environment variables (never stored in `.tfvars`). The `deploy.sh` script handles setting `TF_VAR_*` exports automatically after AWS SSO authentication.
 
-### Key Input Variables
+### **5.1 Key Input Variables**
 
 | Variable | Description |
 |---|---|
@@ -142,7 +458,7 @@ All sensitive values are passed as environment variables (never stored in `.tfva
 | `eni_number_per_subnet` | Number of ENIs per subnet (default: `17`) |
 | `aws_region` | AWS region for all resources |
 
-### CIDR Allocations
+### **5.2 CIDR Allocations**
 
 | Network | CIDR |
 |---|---|
@@ -154,25 +470,24 @@ All VPCs use 3 subnets across 3 AZs with `/4` new bits of sub-netting.
 
 ---
 
-## Deployment
+## **6.0 Deployment**
 
-### Create
+### **6.1 Create**
 
 ```bash
-./deploy.sh create \
-  --profile=<SSO_PROFILE_NAME> \
-  --confluent-api-key=<CONFLUENT_API_KEY> \
-  --confluent-api-secret=<CONFLUENT_API_SECRET> \
-  --tfe-token=<TFE_TOKEN> \
-  --tgw-id=<TGW_ID> \
-  --tgw-rt-id=<TGW_RT_ID> \
-  --tfc-agent-vpc-id=<TFC_AGENT_VPC_ID> \
-  --tfc-agent-vpc-rt-ids=<TFC_AGENT_VPC_RT_IDs> \
-  --vpn-vpc-id=<VPN_VPC_ID> \
-  --vpn-vpc-rt-ids=<VPN_VPC_RT_IDs> \
-  --vpn-endpoint-id=<VPN_ENDPOINT_ID> \
-  --vpn-target-subnet-ids=<VPN_TARGET_SUBNET_IDs> \
-  --pni-hub-vpc-cidr=<PNI_HUB_VPC_CIDR>
+./deploy.sh create --profile=<SSO_PROFILE_NAME> \
+                   --confluent-api-key=<CONFLUENT_API_KEY> \
+                   --confluent-api-secret=<CONFLUENT_API_SECRET> \
+                   --tfe-token=<TFE_TOKEN> \
+                   --tgw-id=<TGW_ID> \
+                   --tgw-rt-id=<TGW_RT_ID> \
+                   --tfc-agent-vpc-id=<TFC_AGENT_VPC_ID> \
+                   --tfc-agent-vpc-rt-ids=<TFC_AGENT_VPC_RT_IDs> \
+                   --vpn-vpc-id=<VPN_VPC_ID> \
+                   --vpn-vpc-rt-ids=<VPN_VPC_RT_IDs> \
+                   --vpn-endpoint-id=<VPN_ENDPOINT_ID> \
+                   --vpn-target-subnet-ids=<VPN_TARGET_SUBNET_IDs> \
+                   --pni-hub-vpc-cidr=<PNI_HUB_VPC_CIDR>
 ```
 
 The script will:
@@ -181,19 +496,29 @@ The script will:
 3. Run `terraform init`, `terraform plan`, prompt for confirmation, then `terraform apply`.
 4. Generate a Terraform graph visualization at `docs/images/terraform-visualization.png`.
 
-### Destroy
+### **6.2 Destroy**
 
 ```bash
-./deploy.sh destroy \
-  --profile=<SSO_PROFILE_NAME> \
-  # ... (same arguments as create)
+./deploy.sh destroy --profile=<SSO_PROFILE_NAME> \
+                    --confluent-api-key=<CONFLUENT_API_KEY> \
+                    --confluent-api-secret=<CONFLUENT_API_SECRET> \
+                    --tfe-token=<TFE_TOKEN> \
+                    --tgw-id=<TGW_ID> \
+                    --tgw-rt-id=<TGW_RT_ID> \
+                    --tfc-agent-vpc-id=<TFC_AGENT_VPC_ID> \
+                    --tfc-agent-vpc-rt-ids=<TFC_AGENT_VPC_RT_IDs> \
+                    --vpn-vpc-id=<VPN_VPC_ID> \
+                    --vpn-vpc-rt-ids=<VPN_VPC_RT_IDs> \
+                    --vpn-endpoint-id=<VPN_ENDPOINT_ID> \
+                    --vpn-target-subnet-ids=<VPN_TARGET_SUBNET_IDs> \
+                    --pni-hub-vpc-cidr=<PNI_HUB_VPC_CIDR>
 ```
 
 Destroy runs `terraform destroy -auto-approve` and regenerates the visualization.
 
 ---
 
-## Outputs
+## **7.0 Outputs**
 
 | Output | Description |
 |---|---|
@@ -202,7 +527,7 @@ Destroy runs `terraform destroy -auto-approve` and regenerates the visualization
 
 ---
 
-## Security Design
+## **8.0 Security Design**
 
 **Security Group (PNI ENIs):** Ingress-only on ports `443` (HTTPS/REST/Schema Registry) and `9092` (Kafka), sourced from the PNI Hub VPC CIDR, TFC Agent VPC CIDR, VPN VPC CIDR, and Client VPN CIDR. **No egress rules are defined**, which causes Terraform to revoke AWS's default `0.0.0.0/0` egress — intentionally mirroring PrivateLink's unidirectional behavior and preventing Confluent-initiated connections into the customer network.
 
@@ -212,7 +537,7 @@ Destroy runs `terraform destroy -auto-approve` and regenerates the visualization
 
 ---
 
-## How PNI Differs from PrivateLink
+## **9.0 How PNI Differs from PrivateLink**
 
 | Aspect | PrivateLink | PNI |
 |---|---|---|
@@ -224,26 +549,7 @@ Destroy runs `terraform destroy -auto-approve` and regenerates the visualization
 
 ---
 
-## Provider Versions
-
-| Provider | Version |
-|---|---|
-| `hashicorp/aws` | `6.33.0` (root) / `>= 6.2.0` (modules) |
-| `confluentinc/confluent` | `2.62.0` (root) / `>= 2.40.0` (modules) |
-| `hashicorp/time` | `~> 0.13.1` |
-| `hashicorp/tfe` | `~> 0.73.0` |
-
----
-
-## Related Resources
-
-- [Confluent Cloud Private Network Interface (PNI)](https://docs.confluent.io/cloud/current/networking/private-links/aws-privatelink.html)
-- [Confluent Terraform Provider](https://registry.terraform.io/providers/confluentinc/confluent/latest/docs)
-- [AWS Transit Gateway](https://docs.aws.amazon.com/vpc/latest/tgw/what-is-transit-gateway.html)
-- [AWS Client VPN](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/what-is.html)
-
-## References
-
+## **10.0 Resources**
 - [Confluent PNI Documentation](https://docs.confluent.io/cloud/current/networking/aws-pni.html)
 - [Confluent PNI FAQ](https://docs.confluent.io/cloud/current/networking/networking-faq.html#pni-questions)
 - [AWS Multi-VPC ENI Attachment](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/scenarios-enis.html)
