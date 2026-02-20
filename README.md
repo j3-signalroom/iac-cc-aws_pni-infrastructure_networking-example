@@ -43,7 +43,7 @@
 
 ## **1.0 Overview**
 
-This repo provisions a complete, production-grade private networking topology that connects AWS workload VPCs to Confluent Cloud Enterprise Kafka clusters using **Private Network Interface (PNI)**, Confluent's next-generation private connectivity model that replaces PrivateLink with customer-owned ENIs placed directly in your VPCs.
+This repo provisions a production-grade private networking topology that connects AWS workload VPCs to Confluent Cloud Enterprise Kafka clusters via **Private Network Interface (PNI)**, Confluent’s next-gen model with customer-owned ENIs deployed directly in your VPCs.
 
 The architecture follows a **Hub-and-Spoke** pattern:
 
