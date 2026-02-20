@@ -490,6 +490,26 @@ All VPCs use 3 subnets across 3 AZs with `/4` new bits of sub-netting.
                    --pni-hub-vpc-cidr=<PNI_HUB_VPC_CIDR>
 ```
 
+Here's the argument table for `deploy.sh create` command:
+
+| Argument | Required | Placeholder | Description |
+|---|---|---|---|
+| `--profile` | ✅ | `<SSO_PROFILE_NAME>` | AWS SSO profile name used to authenticate via `aws sso login` and derive the AWS region and account ID for the session. |
+| `--confluent-api-key` | ✅ | `<CONFLUENT_API_KEY>` | Confluent Cloud API key used by Terraform to authenticate against the Confluent provider. |
+| `--confluent-api-secret` | ✅ | `<CONFLUENT_API_SECRET>` | Confluent Cloud API secret paired with the API key for Terraform provider authentication. |
+| `--tfe-token` | ✅ | `<TFE_TOKEN>` | Terraform Enterprise/Cloud (TFE/TFC) API token used to authenticate the Terraform Cloud Agent with the TFC control plane. |
+| `--tgw-id` | ✅ | `<TGW_ID>` | AWS Transit Gateway ID (e.g., `tgw-xxxxxxxxxxxxxxxxx`) that serves as the central hub routing traffic between the TFC Agent VPC, VPN VPC, and the PrivateLink Network Interconnect (PNI) Hub VPC. |
+| `--tgw-rt-id` | ✅ | `<TGW_RT_ID>` | AWS Transit Gateway Route Table ID (e.g., `tgw-rtb-xxxxxxxxxxxxxxxxx`) to which routes are added for inter-VPC traffic through the Transit Gateway. |
+| `--tfc-agent-vpc-id` | ✅ | `<TFC_AGENT_VPC_ID>` | VPC ID of the VPC hosting the Terraform Cloud Agent (ECS Fargate). This VPC is attached to the Transit Gateway for connectivity to the Confluent Private Network. |
+| `--tfc-agent-vpc-rt-ids` | ✅ | `<TFC_AGENT_VPC_RT_IDs>` | Comma-separated list of route table IDs within the TFC Agent VPC. Routes to the PNI Hub VPC CIDR are injected into these tables to enable PrivateLink reachability. |
+| `--vpn-vpc-id` | ✅ | `<VPN_VPC_ID>` | VPC ID of the VPC where the Client VPN endpoint is deployed, allowing operator/admin connectivity into the private network. |
+| `--vpn-vpc-rt-ids` | ✅ | `<VPN_VPC_RT_IDs>` | Comma-separated list of route table IDs within the VPN VPC. Routes to the PNI Hub VPC CIDR are added here so VPN-connected clients can reach Confluent Private Network. |
+| `--vpn-endpoint-id` | ✅ | `<VPN_ENDPOINT_ID>` | AWS Client VPN Endpoint ID (e.g., `cvpn-endpoint-xxxxxxxxxxxxxxxxx`). Used to associate target subnets and configure VPN routing rules. |
+| `--vpn-target-subnet-ids` | ✅ | `<VPN_TARGET_SUBNET_IDs>` | Comma-separated list of subnet IDs within the VPN VPC to which the Client VPN endpoint is associated, determining which AZs VPN traffic can ingress through. |
+| `--pni-hub-vpc-cidr` | ✅ | `<PNI_HUB_VPC_CIDR>` | CIDR block of the Confluent PrivateLink Network Interconnect (PNI) Hub VPC (e.g., `10.x.x.x/xx`). This CIDR is injected as a route destination into the TFC Agent and VPN VPC route tables so traffic destined for Confluent endpoints is properly directed through the Transit Gateway. |
+
+> All `13` arguments are required, the script exits with code 85 if any are missing.
+
 The script will:
 1. Authenticate to AWS SSO and export temporary credentials.
 2. Export all `TF_VAR_*` environment variables.
@@ -514,6 +534,26 @@ The script will:
                     --pni-hub-vpc-cidr=<PNI_HUB_VPC_CIDR>
 ```
 
+Here's the argument table for `deploy.sh destroy` command:
+
+| Argument | Required | Placeholder | Description |
+|---|---|---|---|
+| `--profile` | ✅ | `<SSO_PROFILE_NAME>` | AWS SSO profile name used to authenticate via `aws sso login` and derive the AWS region and account ID for the session. |
+| `--confluent-api-key` | ✅ | `<CONFLUENT_API_KEY>` | Confluent Cloud API key used by Terraform to authenticate against the Confluent provider. |
+| `--confluent-api-secret` | ✅ | `<CONFLUENT_API_SECRET>` | Confluent Cloud API secret paired with the API key for Terraform provider authentication. |
+| `--tfe-token` | ✅ | `<TFE_TOKEN>` | Terraform Enterprise/Cloud (TFE/TFC) API token used to authenticate the Terraform Cloud Agent with the TFC control plane. |
+| `--tgw-id` | ✅ | `<TGW_ID>` | AWS Transit Gateway ID (e.g., `tgw-xxxxxxxxxxxxxxxxx`) that serves as the central hub routing traffic between the TFC Agent VPC, VPN VPC, and the PrivateLink Network Interconnect (PNI) Hub VPC. |
+| `--tgw-rt-id` | ✅ | `<TGW_RT_ID>` | AWS Transit Gateway Route Table ID (e.g., `tgw-rtb-xxxxxxxxxxxxxxxxx`) to which routes are added for inter-VPC traffic through the Transit Gateway. |
+| `--tfc-agent-vpc-id` | ✅ | `<TFC_AGENT_VPC_ID>` | VPC ID of the VPC hosting the Terraform Cloud Agent (ECS Fargate). This VPC is attached to the Transit Gateway for connectivity to the Confluent Private Network. |
+| `--tfc-agent-vpc-rt-ids` | ✅ | `<TFC_AGENT_VPC_RT_IDs>` | Comma-separated list of route table IDs within the TFC Agent VPC. Routes to the PNI Hub VPC CIDR are injected into these tables to enable PrivateLink reachability. |
+| `--vpn-vpc-id` | ✅ | `<VPN_VPC_ID>` | VPC ID of the VPC where the Client VPN endpoint is deployed, allowing operator/admin connectivity into the private network. |
+| `--vpn-vpc-rt-ids` | ✅ | `<VPN_VPC_RT_IDs>` | Comma-separated list of route table IDs within the VPN VPC. Routes to the PNI Hub VPC CIDR are added here so VPN-connected clients can reach Confluent Private Network. |
+| `--vpn-endpoint-id` | ✅ | `<VPN_ENDPOINT_ID>` | AWS Client VPN Endpoint ID (e.g., `cvpn-endpoint-xxxxxxxxxxxxxxxxx`). Used to associate target subnets and configure VPN routing rules. |
+| `--vpn-target-subnet-ids` | ✅ | `<VPN_TARGET_SUBNET_IDs>` | Comma-separated list of subnet IDs within the VPN VPC to which the Client VPN endpoint is associated, determining which AZs VPN traffic can ingress through. |
+| `--pni-hub-vpc-cidr` | ✅ | `<PNI_HUB_VPC_CIDR>` | CIDR block of the Confluent PrivateLink Network Interconnect (PNI) Hub VPC (e.g., `10.x.x.x/xx`). This CIDR is injected as a route destination into the TFC Agent and VPN VPC route tables so traffic destined for Confluent endpoints is properly directed through the Transit Gateway. |
+
+> All `13` arguments are required, the script exits with code 85 if any are missing.
+
 Destroy runs `terraform destroy -auto-approve` and regenerates the visualization.
 
 ---
@@ -524,6 +564,9 @@ Destroy runs `terraform destroy -auto-approve` and regenerates the visualization
 |---|---|
 | `confluent_pni_hub_gateway_id` | ID of the `confluent_gateway` resource (PNI Hub) |
 | `confluent_pni_hub_access_point_id` | ID of the `confluent_access_point` resource |
+| `confluent_environment_id` | ID of the Confluent Cloud environment where clusters are provisioned |
+| `confluent_sandbox_cluster_id` | ID of the sandbox Kafka cluster (confluent_kafka_cluster) |
+| `confluent_shared_cluster_id` | ID of the shared Kafka cluster (confluent_kafka_cluster) |
 
 ---
 
