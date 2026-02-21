@@ -47,13 +47,6 @@ variable "aws_account_id" {
 # ===================================================
 # TERRAFORM CONFIGURATION
 # ===================================================
-variable "tfe_token" {
-  description = "Terraform Cloud API Token"
-  type        = string
-  sensitive   = true
-  default     = ""
-}
-
 variable "tfc_agent_vpc_id" {
   description = "Terraform Cloud Agent VPC ID (for tagging PHZ association purposes)"
   type        = string
