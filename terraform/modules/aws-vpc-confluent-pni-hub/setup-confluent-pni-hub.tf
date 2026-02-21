@@ -1,4 +1,8 @@
-
+# The gateway is a cloud-native Kafka proxy solution designed to simplify connectivity to and from 
+# Confluent Cloud Kafka cluster services.  It provides a secure and efficient way to connect your
+# applications and services to Confluent Cloud, enabling seamless integration and communication with
+# your Kafka clusters (i.e., abstracting away complex broker lists, inconsistent security settings,
+# and the operational overhead of managing direct client-to-cluster connections).
 resource "confluent_gateway" "pni_hub" {
   display_name = "${data.confluent_environment.pni_hub.display_name}-pni-hub-gateway"
 
@@ -12,13 +16,8 @@ resource "confluent_gateway" "pni_hub" {
   }
 }
 
-# ===================================================================================
-# CONFLUENT PNI ACCESS POINT
-# ===================================================================================
-#
-# The access point registers the ENIs with Confluent Cloud, establishing the private
-# connectivity path. This replaces confluent_private_link_attachment_connection.
-#
+# The access point is the connection instance to the gateway.  It registers the ENIs with Confluent Cloud, 
+# establishing the private connectivity path.
 resource "confluent_access_point" "pni_hub" {
   display_name = "ccloud-pni-hub-${local.network_id}"
 
