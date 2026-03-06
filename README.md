@@ -43,13 +43,7 @@
 
 ## **1.0 Overview**
 
-This repo provisions a production-grade private networking topology that connects AWS workload VPCs to Confluent Cloud Enterprise Kafka clusters via **Private Network Interface (PNI)**, Confluent’s next-gen model with customer-owned ENIs deployed directly in your VPCs.
-
-The architecture follows a **Hub-and-Spoke** pattern:
-
-- A **PNI Hub VPC** owns the ENIs registered with Confluent Cloud and serves as the centralized private connectivity anchor.
-- **PNI Spoke VPCs** (sandbox, shared) each host a Confluent Cloud Enterprise Kafka cluster and peer connectivity through the hub via AWS Transit Gateway.
-- All VPCs are stitched together through an existing **AWS Transit Gateway (TGW)**, enabling a VPN-connected developer/operator to reach Confluent Cloud endpoints without traversing the public internet.
+This repo provides a production-grade private networking topology that connects AWS workload VPCs to Confluent Cloud Enterprise Kafka clusters via **Private Network Interface (PNI)**, Confluent’s next-generation model with customer-managed ENIs deployed directly in your VPCs. The architecture employs a **Hub-and-Spoke** pattern: a **PNI Hub VPC** owns the ENIs registered with Confluent Cloud and functions as the centralized private connectivity hub; **PNI Spoke VPCs** (sandbox, shared) each run a Confluent Cloud Enterprise Kafka cluster and connect to the hub through AWS Transit Gateway. All VPCs are linked via an existing **AWS Transit Gateway (TGW)**, enabling a VPN-connected developer or operator to access Confluent Cloud endpoints entirely within AWS’s private network: _no public endpoints_, _no PrivateLink middleman_, and _no internet gateway required at any point_.
 
 ---
 
