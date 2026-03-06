@@ -100,6 +100,22 @@ module "sandbox_pni_spoke" {
   ]
 }
 
+resource "confluent_kafka_cluster" "sandbox_cluster" {
+  display_name = "sandbox_cluster"
+  availability = "HIGH"
+  cloud        = local.cloud
+  region       = var.aws_region
+  enterprise   {}
+  
+  environment {
+    id = confluent_environment.non_prod.id
+  }
+
+  depends_on = [ 
+    module.sandbox_pni_spoke
+  ]
+}
+
 module "shared_pni_spoke" {
   source = "./modules/aws-vpc-confluent-pni-spoke"
 
@@ -131,23 +147,7 @@ module "shared_pni_spoke" {
   tfc_agent_vpc_cidr       = data.aws_vpc.tfc_agent.cidr_block
 
   depends_on = [ 
-    module.pni_hub
-  ]
-}
-
-resource "confluent_kafka_cluster" "sandbox_cluster" {
-  display_name = "sandbox_cluster"
-  availability = "HIGH"
-  cloud        = local.cloud
-  region       = var.aws_region
-  enterprise   {}
-  
-  environment {
-    id = confluent_environment.non_prod.id
-  }
-
-  depends_on = [ 
-    module.sandbox_pni_spoke
+    confluent_kafka_cluster.sandbox_cluster
   ]
 }
 
