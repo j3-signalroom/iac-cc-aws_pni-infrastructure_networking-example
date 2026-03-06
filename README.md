@@ -456,6 +456,7 @@ All sensitive values are passed as environment variables (never stored in `.tfva
 | `tfc_agent_vpc_id` | Terraform Cloud Agent VPC ID |
 | `tfc_agent_vpc_rt_ids` | Comma-separated TFC Agent VPC route table IDs |
 | `eni_number_per_subnet` | Number of ENIs per subnet (default: `17`) |
+| `subnet_count` | Number of subnets to create per AZ (default: `3`) |
 | `aws_region` | AWS region for all resources |
 
 ### **5.2 CIDR Allocations**

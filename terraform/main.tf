@@ -39,7 +39,7 @@ module "pni_hub" {
 
   #
   vpc_cidr                 = "10.3.0.0/20"
-  subnet_count             = 3
+  subnet_count             = var.subnet_count
   new_bits                 = 4
   eni_number_per_subnet    = var.eni_number_per_subnet
   
@@ -70,7 +70,7 @@ module "sandbox_pni_spoke" {
 
   vpc_name           = "sandbox"
   vpc_cidr           = "10.0.0.0/20"
-  subnet_count       = 3
+  subnet_count       = var.subnet_count
   new_bits           = 4
   pni_hub_vpc_cidr   = module.pni_hub.vpc_pni_hub_cidr
   pni_hub_vpc_rt_ids = module.pni_hub.vpc_pni_hub_rt_ids
@@ -121,7 +121,7 @@ module "shared_pni_spoke" {
 
   vpc_name                 = "shared"
   vpc_cidr                 = "10.1.0.0/20"
-  subnet_count             = 3
+  subnet_count             = var.subnet_count
   new_bits                 = 4
   pni_hub_vpc_cidr         = module.pni_hub.vpc_pni_hub_cidr
   pni_hub_vpc_rt_ids       = module.pni_hub.vpc_pni_hub_rt_ids
