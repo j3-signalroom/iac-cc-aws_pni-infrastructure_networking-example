@@ -7,6 +7,7 @@ The format is base on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), 
 ## [0.01.04.000] - 2026-03-06
 ### Added
 - Issue [`#44`](https://github.com/j3-signalroom/iac-cc-aws_pni-infrastructure_networking-example/issues/44)
+- Issue [`#45`](https://github.com/j3-signalroom/iac-cc-aws_pni-infrastructure_networking-example/issues/45)
 
 ## [0.01.03.000] - 2026-03-04
 ### Added
