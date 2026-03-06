@@ -59,7 +59,7 @@ flowchart TD
         AGENT["Terraform Cloud Agent"]
     end
 
-    TGW["AWS Transit Gateway\n+ Route Table"]
+    TGW["AWS Transit Gateway + Route Table"]
 
     subgraph PNI_HUB["PNI Hub VPC — 10.3.0.0/20"]
         direction TB
