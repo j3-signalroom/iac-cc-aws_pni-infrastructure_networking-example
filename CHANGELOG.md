@@ -11,6 +11,7 @@ The format is base on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), 
 
 ### Changed
 - Issue [`#48`](https://github.com/j3-signalroom/iac-cc-aws_pni-infrastructure_networking-example/issues/48)
+- Issue [`#50`](https://github.com/j3-signalroom/iac-cc-aws_pni-infrastructure_networking-example/issues/50)
 
 ## [0.01.03.000] - 2026-03-04
 ### Added
