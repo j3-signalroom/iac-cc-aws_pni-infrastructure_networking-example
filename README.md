@@ -63,14 +63,14 @@ flowchart TD
 
     subgraph PNI_HUB["PNI Hub VPC — 10.3.0.0/20"]
         direction TB
-        SG["Security Group\n(ports 443, 9092 ingress only)"]
-        NACL["Network ACL\n(443, 9092, ephemeral)"]
+        SG["Security Group (ports 443, 9092 ingress only)"]
+        NACL["Network ACL (443, 9092, ephemeral)"]
         ENI1["ENI — AZ-a"]
         ENI2["ENI — AZ-b"]
         ENI3["ENI — AZ-c"]
         TGW_ATT_HUB["TGW Attachment"]
-        GW["confluent_gateway\n(AWS PNI Gateway)"]
-        AP["confluent_access_point\n(PNI Access Point)"]
+        GW["confluent_gateway (AWS PNI Gateway)"]
+        AP["confluent_access_point (PNI Access Point)"]
         SG --> ENI1 & ENI2 & ENI3
         ENI1 & ENI2 & ENI3 --> AP
         AP --> GW
@@ -78,16 +78,16 @@ flowchart TD
 
     subgraph SANDBOX_SPOKE["Sandbox PNI Spoke VPC — 10.0.0.0/20"]
         TGW_ATT_SB["TGW Attachment"]
-        SK_CLUSTER["confluent_kafka_cluster\nsandbox_cluster\n(Enterprise, HIGH availability)"]
+        SK_CLUSTER["confluent_kafka_cluster sandbox_cluster (Enterprise, HIGH availability)"]
     end
 
     subgraph SHARED_SPOKE["Shared PNI Spoke VPC — 10.1.0.0/20"]
         TGW_ATT_SH["TGW Attachment"]
-        SH_CLUSTER["confluent_kafka_cluster\nshared_cluster\n(Enterprise, HIGH availability)"]
+        SH_CLUSTER["confluent_kafka_cluster shared_cluster (Enterprise, HIGH availability)"]
     end
 
     subgraph CONFLUENT_CLOUD["Confluent Cloud"]
-        ENV["Environment: non-prod\n(Stream Governance: ESSENTIALS)"]
+        ENV["Environment: non-prod (Stream Governance: ESSENTIALS)"]
         GW --> ENV
         SK_CLUSTER --> ENV
         SH_CLUSTER --> ENV
